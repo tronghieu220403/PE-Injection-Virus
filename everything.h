@@ -158,4 +158,5 @@ typedef struct _IAT
 
     // Imagehlp.dll
     pCheckSumMappedFile fnCheckSumMappedFile;
+    
 } IAT, *PIAT;
