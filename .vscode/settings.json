@@ -3,6 +3,14 @@
         "iostream": "cpp",
         "xiosbase": "cpp",
         "xlocale": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "vector": "cpp",
+        "ostream": "cpp",
+        "istream": "cpp",
+        "system_error": "c",
+        "type_traits": "c",
+        "xlocnum": "c",
+        "xtr1common": "c",
+        "xstring": "cpp"
     }
 }

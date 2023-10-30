@@ -375,7 +375,7 @@ BOOL WINAPI IsValidExecutable(HANDLE hFile,PULONG SectionAlignment)
     {
         return FALSE;
     }
- 
+
     if(!ReadFile(hFile,Buffer,FileSize,&read,NULL))
     {
         VirtualFree(Buffer,0,MEM_RELEASE);
