@@ -7,6 +7,7 @@ using namespace std;
 int main()
 {
     vector<string> a;
+    /*
     a.push_back("LoadLibraryExA");
     a.push_back("GetProcAddress");
     a.push_back("FindFirstFileA");
@@ -27,6 +28,9 @@ int main()
     a.push_back("GetEnvironmentVariableA");
     a.push_back("CloseHandle");
     a.push_back("WriteFile");
+    */
+    a.push_back("CreateThread");
+    a.push_back("CreateMutexA");
 
     for (string& s: a)
     {

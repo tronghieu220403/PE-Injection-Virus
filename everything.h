@@ -185,4 +185,5 @@ typedef struct _DATA
 {
     PIAT iat;
     PVOID this_file_base_address;
+    PVOID end_of_virus_main_address;
 } DATA, *PDATA;

