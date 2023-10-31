@@ -11,6 +11,7 @@
         "type_traits": "c",
         "xlocnum": "c",
         "xtr1common": "c",
-        "xstring": "cpp"
+        "xstring": "cpp",
+        "everything.h": "c"
     }
 }
