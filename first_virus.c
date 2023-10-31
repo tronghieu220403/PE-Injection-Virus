@@ -650,5 +650,6 @@ void GetFunctionAddress(PDATA data)
             data->iat->fnCloseHandle = (pCloseHandle)((PUCHAR)kernel32_base + function_table[ordinal[i]]);
         }
 
+
     }
 }

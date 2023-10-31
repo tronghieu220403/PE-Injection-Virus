@@ -140,11 +140,26 @@ typedef NTSTATUS (NTAPI *pNtClose)(
     IN  HANDLE Handle
     );
 
-typedef  DWORD (WINAPI* pGetEnvironmentVariableA)(
+typedef DWORD (WINAPI* pGetEnvironmentVariableA)(
     _In_opt_ LPCSTR lpName,
     _Out_writes_to_opt_(nSize,return + 1) LPSTR lpBuffer,
     _In_ DWORD nSize
     );
+
+typedef HANDLE (WINAPI* pCreateThread)(
+    LPSECURITY_ATTRIBUTES   lpThreadAttributes,
+    SIZE_T          dwStackSize,
+    LPTHREAD_START_ROUTINE  lpStartAddress,
+    LPVOID lpParameter,
+    DWORD dwCreationFlags,
+    LPDWORD lpThreadId
+);
+
+typedef HANDLE (WINAPI* pCreateMutexA)(
+    LPSECURITY_ATTRIBUTES lpMutexAttributes,
+    BOOL                  bInitialOwner,
+    LPCSTR                lpName
+);
 
 
 typedef struct _IAT
@@ -172,6 +187,9 @@ typedef struct _IAT
     pUnmapViewOfFile            fnUnmapViewOfFile;          // 0x12107238
 
     pGetEnvironmentVariableA    fnGetEnvironmentVariableA;  // 0x32b50861
+
+    pCreateThread               fnCreateThread;             // 0x4d89b8a
+    pCreateMutexA               fnCreateMutexA;             // 0x46d6e46
 
     // ntdll.dll
     pNtClose            fnNtClose;                          // 0x30b4218e

