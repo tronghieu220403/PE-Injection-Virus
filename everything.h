@@ -1,3 +1,5 @@
+#pragma once
+
 #define BUFSIZE 512
 
 #define WINVER 0x0A00
@@ -155,6 +157,12 @@ typedef HANDLE (WINAPI* pCreateThread)(
     LPDWORD lpThreadId
 );
 
+typedef DWORD (WINAPI* pWaitForSingleObject)(
+  _In_ HANDLE hHandle,
+  _In_ DWORD  dwMilliseconds
+);
+
+
 typedef HANDLE (WINAPI* pCreateMutexA)(
     LPSECURITY_ATTRIBUTES lpMutexAttributes,
     BOOL                  bInitialOwner,
@@ -189,7 +197,10 @@ typedef struct _IAT
     pGetEnvironmentVariableA    fnGetEnvironmentVariableA;  // 0x32b50861
 
     pCreateThread               fnCreateThread;             // 0x4d89b8a
+    pWaitForSingleObject        fnWaitForSingleObject;      // 0x1965f2c6
+
     pCreateMutexA               fnCreateMutexA;             // 0x46d6e46
+
 
     // ntdll.dll
     pNtClose            fnNtClose;                          // 0x30b4218e
@@ -204,4 +215,5 @@ typedef struct _DATA
     PIAT iat;
     PVOID this_file_base_address;
     PVOID end_of_virus_main_address;
+    int end_virus;
 } DATA, *PDATA;
