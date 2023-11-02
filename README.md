@@ -53,7 +53,7 @@ The new entry point of the victim file will be `RVA of virus section + 0x0ca0` f
 
 ### Modify bytes code of the virus section
 
-In Windows Assembly (MASM), bytes code of `call` instruction is `0xe9 0x?? 0x?? 0x?? 0x??`, where `0x?? 0x?? 0x?? 0x??` is the distance between the end of that instruction and the address of the called function. In `main` function of `virus.c`, I called to an "EmptyFunction" function so we will modify bytes code in that call instruction to call back to the original victim entry point.
+In Windows Assembly (MASM), bytes code of `call` instruction is `0xe8 0x?? 0x?? 0x?? 0x??`, where `0x?? 0x?? 0x?? 0x??` is the distance between the end of that instruction and the address of the called function. In `main` function of `virus.c`, I called to an "EmptyFunction" function so we will modify bytes code in that call instruction to call back to the original victim entry point.
 
 Folder structure
 ----------------
