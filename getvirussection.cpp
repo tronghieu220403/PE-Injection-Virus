@@ -21,8 +21,6 @@ int main(int argc, char *argv[]) {
 
     vector<unsigned char> v64(std::filesystem::file_size(p64));
 
-    cout << std::filesystem::file_size(p64) << endl;
-
     ifstream ifs64(p64_path, std::ios_base::binary);
     ifs64.read((char *)&v64[0], std::filesystem::file_size(p64));
 
