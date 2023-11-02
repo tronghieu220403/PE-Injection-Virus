@@ -30,52 +30,31 @@ Techniques
 Folder structure
 ----------------
 ```
-.
-├── pe-reader.exe                                        
+.                           
 │   │
-├── main.cpp
+├── main
+│   │
+│   └── virus.c
+│   └── firstvirus.cpp
+│   └── getvirussection.cpp
+│   └── sideinfo.cpp
 │   │
 ├── inlucde
-│   │
-│   └── pestructure
-│   │   │ 
-│   │   └── fileheader
-│   │   │   └── dosheader.h
-│   │   │   └── ntheader.h
-│   │   │   └── cofffileheader.h
-│   │   │   └── optionalheader.h
-│   │   │ 
-│   │   └── datadirectories
-│   │   │   └── datadirectorytable.h
-│   │   │   └── datadirectory.h
-│   │   │ 
-│   │   └── sectionheaders
-│   │   │   └── sectiontable.h
-│   │   │   └── sectionheader.h
-│   │   │ 
-│   │   └── importdirectory
-│   │   │   └── importdirectorytable.h
-│   │   │   └── importdirectoryentry.h
-│   │   │   └── importlookuptable.h
-│   │   │   └── importlookupentry.h
-│   │   │   └── hintnametable.h
-│   │   │   └── hintnameentry.h
-│   │   │ 
-│   │   └── exportdirectory
-│   │   │   └── exportdirectorytable.h
-│   │   │   └── exportaddressentry.h
-│   │   │ 
-│   │   └── rsrcsection
-│   │   │   └── resourcedirectorytable.h
-│   │   │   └── resourcedirectorynameentry.h
-│   │   │   └── resourcedirectoryidentry.h
-│   │   │   └── resourcedirectorynameentry.h
-│   │   │   └── resourcedirectorystring.h
-│   │   │ 
-│   │   └── peconstants.h
-│   │
+│   └── pe
+│   │   └── pe.h
+│   └── virus
+│   │   └── virus.h
 │   └── ulti
 │   │   └── everything.h
+│   │
+├── file
+│   └── virusbody
+│   │   └── virus_code_section
+│   └── virusexe
+│   │   └── x86
+│   │   │   └── virus.exe
+│   │   └── x64
+│   │   │   └── virus.exe
 │   │
 ────────────	
 ```
@@ -86,6 +65,6 @@ References
 
 Requirements
 ---
-* C++ 20
+* C++ 17
 * Supported Operating Systems (64-bit)
   * Windows
