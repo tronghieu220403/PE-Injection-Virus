@@ -23,6 +23,10 @@ There are speacial registers in Windows Assembly (MASM), they are fs and gs regi
 
 In **PPEB_LDR_DATA** structure, there is a field named **InMemoryOrderModuleList** - the head of a doubly-linked list that contains the loaded modules for the process. Each item in the list is a pointer to an **LDR_DATA_TABLE_ENTRY** structure. We will query this doubly-linked list to find the **kernel32.dll** base address then get all the needed functions through it's Export Address Table.
 
+### Check if the file has been injected
+
+There are some fields in the PE structure that are no longer used by Windows. We can assign a specific value to one of those fields to indicate that the file has been injected. It will be very efficient for later checks. In here, I will assign a value for `OptionalHeader.LoaderFlags`.
+
 ### Create Virus Section
 
 We will write a virus code in C `virus.c` and then compiler it into 2 version: x86 and x64. Next, we will get content of the `.text` section of these excutables and save them into a file. Here, I saved it into `file/virusbody/virus_code_section`. In the file, x86 section begin from 0x00 to 0x1e00 offset, while x64 section begin from 0x1e00 to 0x1e00 + 0x2400 (end of the file, 0x1e00 bytes is the size of x86 section, 0x2400 bytes is the size for x64).
@@ -40,6 +44,8 @@ We will add an entry into section table. There are something to notice:
 - In an image file, the VAs for sections must be assigned by the linker so that they are in ascending order and adjacent, and they must be a multiple of the **SectionAlignment** value in the optional header. It means that the RVA of virus section must be the largest among all sections.
 
 - We should the round up old victim file size to be a multiple of **FileAlignment** then append the virus section to the end of it. 
+
+- The virus section must have the following section flags in the **Characteristics** field: `IMAGE_SCN_CNT_CODE`, `IMAGE_SCN_CNT_INITIALIZED_DATA`, `IMAGE_SCN_MEM_READ`, `IMAGE_SCN_MEM_EXECUTE`.
 
 ### Modify victim's entry point
 
