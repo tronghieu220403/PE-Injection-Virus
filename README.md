@@ -86,6 +86,8 @@ References
 
 [MSDN - PE Format](https://learn.microsoft.com/en-us/windows/win32/debug/pe-format)
 
+[Rohitab Batra - My first PE infection virus - Zero virus](http://www.rohitab.com/discuss/topic/40857-my-first-pe-infection-virus-zero-virus/)
+
 [Stack Overflow - What is the GS register used for on Windows?](https://stackoverflow.com/questions/39137043/what-is-the-gs-register-used-for-on-windows)
 
 
