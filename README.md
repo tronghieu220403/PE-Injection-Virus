@@ -62,10 +62,10 @@ Folder structure
 │   │
 ├── main
 │   │
-│   └── virus.c
-│   └── firstvirus.cpp
-│   └── getvirussection.cpp
-│   └── sideinfo.cpp
+│   └── virus.c				# the virus source code
+│   └── firstvirus.cpp			# the code to trigger the virus
+│   └── getvirussection.cpp		 
+│   └── sideinfo.cpp			
 │   │
 ├── inlucde
 │   └── pe
