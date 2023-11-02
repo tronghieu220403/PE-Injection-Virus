@@ -29,6 +29,6 @@ int main(int argc, char *argv[]) {
     std::copy (&v32[0x400], &v32[0x400 + 0x1e00], std::back_inserter(merge));
     std::copy (&v64[0x400], &v64[0x400 + 0x2400], std::back_inserter(merge));
 
-    ofstream ofs("virus_code_section", std::ios_base::binary);
+    ofstream ofs("virusbody/virus_code_section", std::ios_base::binary);
     ofs.write((char *)&merge[0], merge.size());
 }
