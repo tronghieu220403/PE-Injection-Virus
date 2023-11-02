@@ -12,7 +12,7 @@ Introduction
 ----------------
 The Portable Executable (PE) format is a commonly used file format in the Windows operating system. It includes executable files (.exe), dynamic-link libraries (.dll), and other system files.
 
-The PE injection virus works by injecting its code into files on the disk, thereby causes the program to launch malicious code when the computer execute that PE files.
+The PE injection virus works by adding its code into files on the disk, thereby causes the program to launch malicious code when the computer execute that PE files.
 
 Techniques
 ----------------
