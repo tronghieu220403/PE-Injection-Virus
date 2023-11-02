@@ -17,17 +17,15 @@ The PE injection virus works by injecting its code into files on the disk, there
 Techniques
 ----------------
 
-## Get Function Addresses of "kernel32.dll"
+### Get Function Addresses of "kernel32.dll"
 
+### Create Virus Section
 
+### Add virus section to victim file
 
-## Create Virus Section
+### Modify victim's entry point
 
-## Add virus section to victim file
-
-## Modify victim's entry point
-
-## Modify bytes code of the virus section
+### Modify bytes code of the virus section
 
 Folder structure
 ----------------
