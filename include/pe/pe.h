@@ -21,7 +21,14 @@ BYTE WINAPI IsValidExecutable(const PVOID file_data)
     {
         return 0;
     }
-    return 1;
+    if (p_image_nt_headers->FileHeader.Characteristics & IMAGE_FILE_EXECUTABLE_IMAGE)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 BYTE WINAPI Is64BitExecutable(const PVOID file_data)
