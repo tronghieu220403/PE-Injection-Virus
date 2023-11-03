@@ -12,7 +12,7 @@ Introduction
 ----------------
 The Portable Executable (PE) format is a commonly used file format in the Windows operating system. It includes executable files (.exe), dynamic-link libraries (.dll), and other system files.
 
-The PE injection virus works by adding its code into files on the disk, thereby causes the program to launch malicious code when the computer execute that PE files.
+The PE injection virus works on both 32-bit and 64-bit PE files by adding its code into files on the disk, thereby causes the program to launch malicious code when the computer execute that PE files.
 
 Techniques
 ----------------
@@ -53,7 +53,7 @@ The new entry point of the victim file will be `RVA of virus section + 0x0ca0` f
 
 ### Modify bytes code of the virus section
 
-In Windows Assembly (MASM), bytes code of `call` instruction is `0xe8 0x?? 0x?? 0x?? 0x??`, where `0x?? 0x?? 0x?? 0x??` is the distance between the end of that instruction and the address of the called function. In `main` function of `virus.c`, I called to an "EmptyFunction" function so we will modify bytes code in that call instruction to call back to the original victim entry point.
+In Windows Assembly (MASM), bytecode of `call` instruction is `0xe8 0x?? 0x?? 0x?? 0x??`, where `0x?? 0x?? 0x?? 0x??` is the distance between the end of that instruction and the address of the called function. In `main` function of `virus.c`, I called to an `EmptyFunction` function so we will modify bytecode in that call instruction to call back to the original victim entry point.
 
 Folder structure
 ----------------
