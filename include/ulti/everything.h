@@ -260,3 +260,10 @@ BYTE StrCmp(void* str1, void *str2)
         }
     }
 }
+
+unsigned long long MemoryToUint64(unsigned char* data)
+{
+    unsigned long long ans = 0;
+    memcpy(&ans, data, 8);
+    return ans;
+}

