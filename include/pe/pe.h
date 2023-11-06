@@ -1,3 +1,6 @@
+#ifndef PEINJECTIONVIRUS_INCLUDE_PE_PE_H_
+#define PEINJECTIONVIRUS_INCLUDE_PE_PE_H_
+
 #include "ulti/everything.h"
 
 BYTE WINAPI IsValidExeFile(const PVOID file_data);
@@ -316,3 +319,5 @@ void GetFunctionAddresses(const PDATA data)
         }
     }
 }
+
+#endif

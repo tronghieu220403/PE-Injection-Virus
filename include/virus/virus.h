@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef PEINJECTIONVIRUS_INCLUDE_VIRUS_VIRUS_H_
+#define PEINJECTIONVIRUS_INCLUDE_VIRUS_VIRUS_H_
+
 #include "ulti/everything.h"
 #include "pe/pe.h"
 
@@ -252,3 +255,5 @@ void WINAPI InfectFile(PSTR file_name, PDATA data)
     }
     return;
 } 
+
+#endif

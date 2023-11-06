@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef PEINJECTIONVIRUS_INCLUDE_ULTI_EVERYTHING_H_
+#define PEINJECTIONVIRUS_INCLUDE_ULTI_EVERYTHING_H_
+
 #define BUFSIZE 512
 
 #define WINVER 0x0A00
@@ -267,3 +270,5 @@ unsigned long long MemoryToUint64(unsigned char* data)
     memcpy(&ans, data, 8);
     return ans;
 }
+
+#endif
