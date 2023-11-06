@@ -2,7 +2,7 @@
 
 namespace pe
 {
-    PortableExecution::PortableExecution(const std::string_view &full_path):
+    PortableExecutable::PortableExecutable(const std::string_view &full_path):
         name_(full_path)
     {
         std::filesystem::path p{full_path};
@@ -15,66 +15,74 @@ namespace pe
         ifs.close();
     }
 
-    DWORD PortableExecution::GetEntryPoint() const
+    DWORD PortableExecutable::GetEntryPoint() const
     {
         return ::GetEntryPoint((PVOID)&data_[0]);
     }
 
-    void PortableExecution::SetEntryPoint(DWORD entry_point)
+    void PortableExecutable::SetEntryPoint(DWORD entry_point)
     {
         return ::SetEntryPoint((PVOID)&data_[0], entry_point);
     }
 
-    std::vector<unsigned char> PortableExecution::GetData() const
+    std::vector<unsigned char> PortableExecutable::GetData() const
     {
         return data_;
     }
 
-    void PortableExecution::SetData(const std::vector<unsigned char> data)
+    void PortableExecutable::SetData(const std::vector<unsigned char> data)
     {
         data_ = data;
     }
 
-    bool PortableExecution::IsValidExe()
+    bool PortableExecutable::IsValidExe()
     {
         return IsValidExeFile((PVOID)&data_[0]);
     }
 
-    bool PortableExecution::Is64Bit()
+    bool PortableExecutable::Is64Bit()
     {
         return Is64BitExecutable((PVOID)&data_[0]);
     }
 
-    std::vector<unsigned char> PortableExecution::GetCodeSectionOfEntryPoint()
+    SECTION PortableExecutable::GetCodeSectionOfEntryPoint()
     {
         std::vector<unsigned char> code_section_data;
-        PIMAGE_SECTION_HEADER code_section_header = ::GetCodeSectionOfEntryPoint((PVOID)&data_[0]);
+        IMAGE_SECTION_HEADER code_section_header = {0};
+        PIMAGE_SECTION_HEADER p_header = ::GetCodeSectionOfEntryPoint((PVOID)&data_[0]);
 
-        DWORD begin_offset = code_section_header->PointerToRawData;
-        DWORD end_offfset =  begin_offset + code_section_header->SizeOfRawData;
-
-        if (code_section_header != NULL)
+        if (p_header == NULL)
         {
-            std::copy (&data_[begin_offset], &data_[end_offfset], std::back_inserter(code_section_data));
+            return {code_section_header, code_section_data};
         }
-        return code_section_data;
+
+        memcpy(&code_section_header, p_header, sizeof(IMAGE_SECTION_HEADER));
+
+        DWORD begin_offset = code_section_header.PointerToRawData;
+        DWORD end_offfset =  begin_offset + code_section_header.SizeOfRawData;
+        std::copy (&data_[begin_offset], &data_[end_offfset], std::back_inserter(code_section_data));
+
+        return {code_section_header, code_section_data};
+
     }
 
-    std::vector<unsigned char> PortableExecution::GetSectionData(const std::string_view &section_name)
+    SECTION PortableExecutable::GetSectionData(const std::string_view &section_name)
     {
         std::vector<unsigned char> section_data;
-        PIMAGE_SECTION_HEADER section_header = GetSectionHeader(section_name);
-        if (section_header != NULL)
+        IMAGE_SECTION_HEADER section_header = {0};
+        PIMAGE_SECTION_HEADER p_header = GetSectionHeader(section_name);
+        if (p_header != NULL)
         {
-            DWORD begin_offset = section_header->PointerToRawData;
-            DWORD end_offfset =  begin_offset + section_header->SizeOfRawData;
+            memcpy(&section_header, p_header, sizeof(IMAGE_SECTION_HEADER));
+            DWORD begin_offset = section_header.PointerToRawData;
+            DWORD end_offfset =  begin_offset + section_header.SizeOfRawData;
 
             std::copy (&data_[begin_offset], &data_[end_offfset], std::back_inserter(section_data));
         }
-        return section_data;
+        return {section_header, section_data};
     }
 
-    PIMAGE_SECTION_HEADER PortableExecution::GetSectionHeader(const std::string_view &section_name)
+    PIMAGE_SECTION_HEADER PortableExecutable::GetSectionHeader(const std::string_view &section_name)
     {
         if (section_name.size() > 8)
         {
@@ -117,7 +125,7 @@ namespace pe
         return NULL;
     }
 
-    void PortableExecution::FlushChange()
+    void PortableExecutable::FlushChange()
     {
         std::ofstream ofs(name_, std::ios_base::binary);
         ofs.write((char *)&data_[0], data_.size());

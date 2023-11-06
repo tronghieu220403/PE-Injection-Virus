@@ -7,7 +7,13 @@
 
 namespace pe
 {
-    class PortableExecution
+    struct SECTION
+    {
+        IMAGE_SECTION_HEADER header;
+        std::vector<unsigned char> data;
+    };
+
+    class PortableExecutable
     {
         private:
             std::vector<unsigned char> data_;
@@ -15,8 +21,8 @@ namespace pe
 
         public:
 
-            PortableExecution() = default;
-            PortableExecution(const std::string_view& full_path);
+            PortableExecutable() = default;
+            PortableExecutable(const std::string_view& full_path);
 
             DWORD GetEntryPoint() const;
             void SetEntryPoint(DWORD entry_point);
@@ -27,9 +33,9 @@ namespace pe
             bool IsValidExe();
             bool Is64Bit();
 
-            std::vector<unsigned char> GetCodeSectionOfEntryPoint();
+            SECTION GetCodeSectionOfEntryPoint();
 
-            std::vector<unsigned char> GetSectionData(const std::string_view& section_name);
+            SECTION GetSectionData(const std::string_view& section_name);
             PIMAGE_SECTION_HEADER GetSectionHeader(const std::string_view& section_name);
 
             void FlushChange();

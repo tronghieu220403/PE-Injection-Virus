@@ -3,7 +3,7 @@
 
 namespace virus
 {
-    class PeVirus: pe::PortableExecution
+    class PeVirus: public pe::PortableExecutable
     {
         public:
         PeVirus(const std::string_view& full_path);

