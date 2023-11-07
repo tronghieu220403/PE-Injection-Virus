@@ -1,12 +1,9 @@
+#pragma once
+
 #ifndef PEINJECTIONVIRUS_INCLUDE_PE_PECPP_H_
 #define PEINJECTIONVIRUS_INCLUDE_PE_PECPP_H_
 
-#include "pe.h"
-
-#include <string>
-#include <vector>
-#include <filesystem>
-#include <fstream>
+#include "pe/pe.h"
 
 namespace pe
 {

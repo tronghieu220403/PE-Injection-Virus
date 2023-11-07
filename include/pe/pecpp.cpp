@@ -1,10 +1,14 @@
-#include "pecpp.h"
+#include "pe/pecpp.h"
 
 namespace pe
 {
     PortableExecutable::PortableExecutable(const std::string_view &full_path):
         name_(full_path)
     {
+        if (!std::filesystem::exists(full_path))
+        {
+            return;
+        }
         std::filesystem::path p{full_path};
         data_.resize(std::filesystem::file_size(p));
         std::ifstream ifs(p, std::ios_base::binary);

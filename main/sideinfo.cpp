@@ -2,11 +2,13 @@
 #include <Windows.h>
 #include <iostream>
 #include <vector>
+
 using namespace std;
 
 int main()
 {
     vector<string> a;
+    /*
     a.push_back("LoadLibraryExA");
     a.push_back("GetProcAddress");
     a.push_back("FindFirstFileA");
@@ -30,6 +32,9 @@ int main()
     a.push_back("CreateThread");
     a.push_back("CreateMutexA");
     a.push_back("WaitForSingleObject");
+    */
+    a.push_back("WriteConsoleA");
+    a.push_back("GetStdHandle");
 
     for (string& s: a)
     {
@@ -49,5 +54,4 @@ int main()
     }
     cout << "virus_name[" << s.size() << "] = 0" << endl;
     cout << endl;
-
 }

