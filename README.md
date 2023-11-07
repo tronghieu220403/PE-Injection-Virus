@@ -1,3 +1,23 @@
+# Disclaimer
+
+The following technique, explanation, or information provided herein is intended for educational and informational purposes only. By accessing or utilizing the technique, you acknowledge and agree to the terms and conditions outlined in this disclaimer.
+
+## Educational Purpose
+
+The Technique is intended to provide educational insights, promote understanding, and encourage responsible usage of technology. It is not intended to endorse or facilitate any malicious or illegal activities.
+
+## Prohibited Use 
+
+You expressly agree not to use the technique, or any part thereof, for any malicious, harmful, or illegal purposes. This includes, but is not limited to, unauthorized access, damage, disruption, or misuse of computer systems, networks, or personal data. Any use of the technique for such purposes is strictly prohibited.
+
+## Legal and Ethical Considerations
+
+The technique may involve technical concepts, tools, or methodologies. It is your responsibility to ensure compliance with all applicable laws, regulations, and ethical guidelines when using the technique. Unauthorized or malicious use of the technique is strictly prohibited.
+
+## External Links and References
+
+The Technique may contain links or references to external websites, resources, or third-party content. We do not endorse or assume any responsibility for the accuracy, reliability, or content of such external sources.
+
 # PE Injection Virus
  
 Welcome to the "PE Injection Virus" repository! This is an open-source project that aims to provide a virus which will inject malicious code into all Portable Executable (PE) files.
@@ -10,9 +30,13 @@ Welcome to the "PE Injection Virus" repository! This is an open-source project t
 
 Introduction
 ----------------
+
 The Portable Executable (PE) format is a commonly used file format in the Windows operating system. It includes executable files (.exe), dynamic-link libraries (.dll), and other system files.
 
 The PE injection virus works on both 32-bit and 64-bit PE files by adding its code into files on the disk, thereby causes the program to launch malicious code when the computer execute that PE files.
+
+**Notice**
+Many executable files have their own **integrity checks**, so viruses will not work on that file. You will receive a message like "installer integrity check has failed..." when executing that file.
 
 Techniques
 ----------------
@@ -29,9 +53,9 @@ There are some fields in the PE structure that are no longer used by Windows. We
 
 ### Create Virus Section
 
-We will write a virus code in C `virus.c` and then compiler it into 2 version: x86 and x64. Next, we will get content of the `.text` section of these excutables and save them into a file. Here, I saved it into `file/virusbody/virus_code_section`. In the file, x86 section begin from 0x00 to 0x1e00 offset, while x64 section begin from 0x1e00 to 0x1e00 + 0x2400 (end of the file, 0x1e00 bytes is the size of x86 section, 0x2400 bytes is the size for x64).
+We will write a virus code in C `virus.cpp` and then compiler it into 2 version: x86 and x64. Next, we will get content of the `.text` section of these excutables and save them into a file. Here, I saved it into `file/virusbody/virus_code_section`. 
 
-The position of entry point from the beginning of the `virus_code_section` is **0x0ca0** for x86, in x64 it's **0x28f0**.
+Moreover, I saved the position of entry points as 2 DWORD for x86 and x64 in the fisrt 8 bytes of the `virus_code_section`, respectively.
 
 ### Add virus section to victim file
 
@@ -43,17 +67,19 @@ We will add an entry into section table. There are something to notice:
 
 - In an image file, the VAs for sections must be assigned by the linker so that they are in ascending order and adjacent, and they must be a multiple of the **SectionAlignment** value in the optional header. It means that the RVA of virus section must be the largest among all sections.
 
-- We should the round up old victim file size to be a multiple of **FileAlignment** then append the virus section to the end of it. 
+- We should the round up old victim file size to be a multiple of **FileAlignment** then **append the virus section to the end of PE header**. If the file has Overlays part, shift it to prevent dataloss and make sure that the Overlays part is always the last part of the file. 
 
 - The virus section must have the following section flags in the **Characteristics** field: `IMAGE_SCN_CNT_CODE`, `IMAGE_SCN_CNT_INITIALIZED_DATA`, `IMAGE_SCN_MEM_READ`, `IMAGE_SCN_MEM_EXECUTE`.
 
 ### Modify victim's entry point
 
-The new entry point of the victim file will be `RVA of virus section + 0x0ca0` for x86 and`RVA of virus section + 0x28f0` for x64.
+The new entry point of the victim file will be `RA of virus section in the victim file` plus the first DWORD in virus section for x86 or the second DWORD for x64, depend on the victim's architecture.
 
 ### Modify bytes code of the virus section
 
-In Windows Assembly (MASM), bytecode of `call` instruction is `0xe8 0x?? 0x?? 0x?? 0x??`, where `0x?? 0x?? 0x?? 0x??` is the distance between the end of that instruction and the address of the called function. In `main` function of `virus.c`, I called to an `EmptyFunction` function so we will modify bytecode in that call instruction to call back to the original victim entry point.
+In Windows Assembly (MASM), bytecode of `call` instruction is `0xe8 0x?? 0x?? 0x?? 0x??`, where `0x?? 0x?? 0x?? 0x??` is the distance between the end of that instruction and the address of the called function. In `main` function of `virus.cpp`, I called to an `EmptyFunction` function so we will modify bytecode in that call instruction to call back to the original victim entry point. 
+
+Nevertheless, in x86 code, we have to modify the `push offset InfectUserProfile` so that it will push to the exact offset of InfectUserProfile in the victim file.
 
 Folder structure
 ----------------
@@ -64,14 +90,16 @@ Folder structure
 │   │
 │   └── virus.c				# the virus source code
 │   └── firstvirus.cpp			# the code to trigger the virus
-│   └── getvirussection.cpp		 
+│   └── getvirussection.cpp		# the code to add virus section to the Pe-First-Virus.exe
 │   └── sideinfo.cpp			
 │   │
 ├── inlucde
 │   └── pe
 │   │   └── pe.h
+│   │   └── pecpp.h
 │   └── virus
 │   │   └── virus.h
+│   │   └── viruscpp.h
 │   └── ulti
 │   │   └── everything.h
 │   │
@@ -80,9 +108,11 @@ Folder structure
 │   │   └── virus_code_section
 │   └── virusexe
 │   │   └── x86
-│   │   │   └── virus.exe
+│   │   │   └── PE-Virus.exe
 │   │   └── x64
-│   │   │   └── virus.exe
+│   │   │   └── PE-Virus.exe
+│   └── firstvirus
+│   │   │   └── PE-First-Virus.exe
 │   │
 ────────────	
 ```
