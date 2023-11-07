@@ -53,7 +53,7 @@ There are some fields in the PE structure that are no longer used by Windows. We
 
 ### Create Virus Section
 
-We will write a virus code in C `virus.cpp` and then compiler it into 2 version: x86 and x64. Next, we will get content of the `.text` section of these excutables and save them into a file. Here, I saved it into `file/virusbody/virus_code_section`. 
+We will write a virus code in C++ `virus.cpp` and then compiler it into 2 version: x86 and x64. Next, we will get content of the `.text` section of these excutables and save them into a file. Here, I saved it into `file/virusbody/virus_code_section`. 
 
 Moreover, I saved the position of entry points as 2 DWORD for x86 and x64 in the fisrt 8 bytes of the `virus_code_section`, respectively.
 
