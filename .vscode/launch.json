@@ -1,0 +1,13 @@
+{
+    "name": "C++ Launch (Windows)",
+    "type": "cppvsdbg",
+    "request": "launch",
+    "program": "C:\\Users\\svttHieu\\Documents\\js\\PE-Injection-Virus\\main\\firstvirus.exe",
+    "externalConsole": true,
+    "logging": {
+      "moduleLoad": false,
+      "trace": true
+    },
+    "showDisplayString": true
+  }
+  
